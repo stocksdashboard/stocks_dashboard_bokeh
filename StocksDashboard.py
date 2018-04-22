@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import pandas as pd
 from bokeh.layouts import gridplot
@@ -15,7 +14,7 @@ WIDTH = 1024
 HEIGHT = 648
 
 
-__all__ = ['Base_StocksDashboard', 'StocksDashboard', 'datetime', 'get_colors']
+__all__ = ['StocksDashboard', 'datetime', 'get_colors']
 
 
 def datetime(x):
@@ -33,7 +32,7 @@ def get_colors(number_of_colors, palette_name='Category20'):
     return colors
 
 
-class Base_StocksDashboard():
+class StocksDashboard():
     widgets = None
     sliders = None
 
@@ -46,9 +45,21 @@ class Base_StocksDashboard():
     }
     mode = 'vline'
 
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+    width = WIDTH
+    height = HEIGHT
+    ncols = 1
+    names = None
+
+    # code = "source.set('selected', cb_data['index']);"
+    # callback = CustomJS(args={'source': source}, code=code)
+
+    def __init__(self, width=None, height=None, ncols=None):
+        if width:
+            self.width = width
+        if height:
+            self.height = height
+        if ncols:
+            self.ncols = ncols
 
     @staticmethod
     def create_hover(tooltips=[('date', '$x{%F}'), ('value', '@y{0.000}')],
@@ -62,25 +73,6 @@ class Base_StocksDashboard():
                 setattr(hover, k, v)
         return hover
 
-
-class StocksDashboard(Base_StocksDashboard):
-    window_size = 30
-    window = np.ones(window_size) / float(window_size)
-    width = WIDTH
-    height = HEIGHT
-    ncols = 1
-    names = None
-    # code = "source.set('selected', cb_data['index']);"
-    # callback = CustomJS(args={'source': source}, code=code)
-
-    def __init__(self, **kwargs):
-
-        if sys.version_info[0] < 3:
-            Base_StocksDashboard.__init__(self, **kwargs)
-        else:
-            super().__init__(self, **kwargs)
-        """for k, v in kwargs.items():
-            setattr(self, k, v)"""
     @property
     def names(self):
         return self._names
@@ -89,8 +81,10 @@ class StocksDashboard(Base_StocksDashboard):
     def names(self, names):
         assert(isinstance(names, list)), "'names' should be a list."
         if not hasattr(self, '_names') or not self._names:
+            # If empty, create a list.
             self._names = [names]
         else:
+            # Add to the list of elements
             self._names.append([names])
 
     def retrieve_names(self, data):
@@ -278,4 +272,3 @@ class StocksDashboard(Base_StocksDashboard):
         curdoc().title = title
         output_file("%s.html" % output_filename, title=title)
         return curdoc()
-
