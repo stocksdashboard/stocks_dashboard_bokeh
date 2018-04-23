@@ -5,6 +5,7 @@ appnope==0.1.0
 arrow==0.12.1
 asn1crypto==0.24.0
 async-timeout==1.2.1
+attrs==17.4.0
 autopep8==1.3.3
 backtrader==1.9.63.122
 bcolz==0.12.1
@@ -91,11 +92,13 @@ patsy==0.4.1
 pexpect==4.2.1
 pickleshare==0.7.4
 plotly==2.1.0
+pluggy==0.6.0
 proj==0.1.0
 prompt-toolkit==1.0.15
 protobuf==3.4.0
 psutil==5.4.3
 ptyprocess==0.5.2
+py==1.5.3
 PyAlgoTrade==0.18
 pyasn1==0.4.2
 pycodestyle==2.3.1
@@ -105,6 +108,7 @@ pyOpenSSL==17.5.0
 pyparsing==2.2.0
 PySAL==1.14.3
 pystan==2.16.0.0
+pytest==3.5.0
 python-dateutil==2.7.0
 python-editor==1.0.3
 pytz==2018.3

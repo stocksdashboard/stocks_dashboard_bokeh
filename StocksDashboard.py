@@ -50,6 +50,14 @@ class StocksDashboard():
         self.width = width
         self.height = height
         self.ncols = ncols
+        self.check_variables()
+
+    def check_variables(self):
+        for varname in self:
+            if varname in ['width', 'height', 'ncols']:
+                if not getattr(self, varname):
+                    msg = "'%s cannot be None.'" % varname
+                    raise(AttributeError(msg))
 
     @staticmethod
     def create_hover(tooltips=[('date', '$x{%F}'), ('value', '@y{0.000}')],
