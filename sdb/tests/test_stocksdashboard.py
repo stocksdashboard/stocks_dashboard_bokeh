@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import pytest
-from stocks_dashboard_bokeh.stocksdashboard import StocksDashboard as sdb
+from ..stocksdashboard.stocksdashboard import StocksDashboard as sdb
 
 
 def test_init_variables_None():

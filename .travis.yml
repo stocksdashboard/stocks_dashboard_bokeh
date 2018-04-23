@@ -7,4 +7,4 @@ cache: pip
 install:
   - pip install -r requirements.txt
 script:
-  - python tests/test_stocksdashboard.py
+  - python sdb/tests/test_stocksdashboard.py

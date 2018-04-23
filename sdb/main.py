@@ -5,9 +5,9 @@
 
 import numpy as np
 import pandas as pd
-from stocksdashboard import StocksDashboard
-from stocksdashboard import convert_to_datetime
-from stocksdashboard import get_colors
+from stocksdashboard.stocksdashboard import StocksDashboard
+from stocksdashboard.stocksdashboard import convert_to_datetime
+from stocksdashboard.stocksdashboard import get_colors
 from bokeh.sampledata.stocks import AAPL, GOOG, IBM, MSFT
 
 
