@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import pandas as pd
 from bokeh.layouts import gridplot
@@ -15,10 +14,10 @@ WIDTH = 1024
 HEIGHT = 648
 
 
-__all__ = ['Base_StocksDashboard', 'StocksDashboard', 'datetime', 'get_colors']
+__all__ = ['StocksDashboard', 'convert_to_datetime', 'get_colors']
 
 
-def datetime(x):
+def convert_to_datetime(x):
     return np.array(x, dtype=np.datetime64)
 
 
@@ -33,7 +32,7 @@ def get_colors(number_of_colors, palette_name='Category20'):
     return colors
 
 
-class Base_StocksDashboard():
+class StocksDashboard():
     widgets = None
     sliders = None
 
@@ -45,42 +44,22 @@ class Base_StocksDashboard():
         '$x': 'datetime',
     }
     mode = 'vline'
+    names = None
 
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+    def __init__(self, width=WIDTH, height=HEIGHT, ncols=1):
+        self.width = width
+        self.height = height
+        self.ncols = ncols
 
     @staticmethod
     def create_hover(tooltips=[('date', '$x{%F}'), ('value', '@y{0.000}')],
                      formatters={'$x': 'datetime'}, mode='vline', **kwargs):
-        hover = HoverTool()
+        hover = HoverTool(**kwargs)
         hover.tooltips = tooltips
         hover.formatters = formatters
         hover.mode = mode
-        for k, v in kwargs.items():
-            if hasattr(hover, k):
-                setattr(hover, k, v)
         return hover
 
-
-class StocksDashboard(Base_StocksDashboard):
-    window_size = 30
-    window = np.ones(window_size) / float(window_size)
-    width = WIDTH
-    height = HEIGHT
-    ncols = 1
-    names = None
-    # code = "source.set('selected', cb_data['index']);"
-    # callback = CustomJS(args={'source': source}, code=code)
-
-    def __init__(self, **kwargs):
-
-        if sys.version_info[0] < 3:
-            Base_StocksDashboard.__init__(self, **kwargs)
-        else:
-            super().__init__(self, **kwargs)
-        """for k, v in kwargs.items():
-            setattr(self, k, v)"""
     @property
     def names(self):
         return self._names
@@ -89,8 +68,10 @@ class StocksDashboard(Base_StocksDashboard):
     def names(self, names):
         assert(isinstance(names, list)), "'names' should be a list."
         if not hasattr(self, '_names') or not self._names:
+            # If empty, create a list.
             self._names = [names]
         else:
+            # Add to the list of elements
             self._names.append([names])
 
     def retrieve_names(self, data):
@@ -190,7 +171,7 @@ class StocksDashboard(Base_StocksDashboard):
                                      " %s." % type(data)))
 
             if 'date' in data:
-                x = datetime(data['date'])
+                x = convert_to_datetime(data['date'])
             else:
                 if hasattr(data, 'index'):
                     x = data.index
@@ -278,4 +259,3 @@ class StocksDashboard(Base_StocksDashboard):
         curdoc().title = title
         output_file("%s.html" % output_filename, title=title)
         return curdoc()
-
