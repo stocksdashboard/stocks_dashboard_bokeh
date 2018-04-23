@@ -52,12 +52,25 @@ class StocksDashboard():
         self.ncols = ncols
         self.check_variables()
 
-    def check_variables(self):
-        for varname in self:
-            if varname in ['width', 'height', 'ncols']:
-                if not getattr(self, varname):
-                    msg = "'%s cannot be None.'" % varname
-                    raise(AttributeError(msg))
+    def check_variables(self, varname=None):
+
+        def _is_valid_type(__varname=None, __value=None):
+            if not __value:
+                msg = "'%s cannot be None.'" % __varname
+                raise(ValueError(msg))
+            elif not isinstance(__value, int):
+                msg = "'%s cannot be of" % __varname + \
+                      "type %s, must be 'int'" % type(__value)
+                raise (TypeError(msg))
+            else:
+                return True
+
+        if varname and hasattr(self, varname):
+            return _is_valid_type(varname, getattr(self, varname))
+        else:
+            for _varname, _value in self.__dict__.items():
+                if _varname in ['width', 'height', 'ncols']:
+                    _is_valid_type(_varname, _value)
 
     @staticmethod
     def create_hover(tooltips=[('date', '$x{%F}'), ('value', '@y{0.000}')],
@@ -93,7 +106,6 @@ class StocksDashboard():
         """
             Check that the dataframes for plotting are the valid type.
         """
-
         if not (df is None or isinstance(df,
                                          (pd.DataFrame, pd.Series,
                                           list, dict, np.ndarray))):
@@ -115,12 +127,12 @@ class StocksDashboard():
                     if hasattr(d, 'values')]):
                 result = {k: pd.DataFrame.from_dict(d) for k, d in df.items()
                           if hasattr(d, 'values')}
-                self.names = [result.keys()]
-                return result.values()
+                self.names = list(result.keys())
+                return list(result.values())
             elif all([isinstance(d, pd.DataFrame) for k, d in df.items()
                       if hasattr(d, 'values')]):
-                self.names = [df.keys()]
-                return df.values()
+                self.names = list(df.keys())
+                return list(df.values())
             else:
                 raise(ValueError("Dict containing objects" +
                                  " of tpye %s." % type(df) +
@@ -135,13 +147,16 @@ class StocksDashboard():
         result = self.check_valid(df)
 
         if not isinstance(result, bool):
-            df = copy.copy(result)
+            df = result
 
         if not isinstance(df, (list, dict)):
             # Convert to a list of, at least,
             # one element, to be able to iterate.
-            df = [pd.DataFrame(df)]
-        return copy.copy(df)
+            if not isinstance(df, pd.DataFrame):
+                df = [pd.DataFrame(df)]
+            else:
+                df = [df]
+        return copy.deepcopy(df)
 
     @staticmethod
     def get_x_y(data, column):

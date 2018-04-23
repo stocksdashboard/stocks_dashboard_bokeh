@@ -1,8 +1,10 @@
 language: python
 python:
   - "3.6"
+virtualenv:
+  system_site_packages: false
 cache: pip
 install:
   - pip install -r requirements.txt
 script:
-  - python tests/tests.py
+  - python tests/test_stocksdashboard.py
