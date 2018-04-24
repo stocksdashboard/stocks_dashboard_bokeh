@@ -279,3 +279,11 @@ class StocksDashboard():
         curdoc().title = title
         output_file("%s.html" % output_filename, title=title)
         return curdoc()
+
+
+class Formatter(StocksDashboard):
+
+    def __init__(self, sdb):
+        if type(sdb) != 'StocksDashboard':
+            raise(ValueError("'sdb' should be of class 'StocksDashboard'." +
+                             "Found class %s" % type(sdb)))
