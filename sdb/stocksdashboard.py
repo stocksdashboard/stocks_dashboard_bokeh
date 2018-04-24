@@ -78,83 +78,6 @@ class StocksDashboard():
         hover.mode = mode
         return hover
 
-    @property
-    def names(self):
-        return self._names
-
-    @names.setter
-    def names(self, names):
-        assert(isinstance(names, list)), "'names' should be a list."
-        if not hasattr(self, '_names') or not self._names:
-            # If empty, create a list.
-            self._names = [names]
-        else:
-            # Add to the list of elements
-            self._names.append([names])
-
-    def retrieve_names(self, data):
-        if self.names and len(self.names[-1]) == len(data):
-            names = self.names[-1]
-        else:
-            names = np.arange(len(data))
-        return names
-
-    def check_valid(self, df):
-        """
-            Check that the dataframes for plotting are the valid type.
-        """
-        if not (df is None or isinstance(df,
-                                         (pd.DataFrame, pd.Series,
-                                          list, dict, np.ndarray))):
-
-            raise(ValueError("Inapropiate value of df: %s." % df +
-                             "Expected pandas.DataFrame, pandas.Series, " +
-                             "or list of pandas objects"""))
-
-        if isinstance(df, list):
-            if all([isinstance(d, dict) for d in df]):
-                return [pd.DataFrame.from_dict(d)
-                        if not isinstance(d.values(), dict)
-                        else StocksDashboard.check_valid(d)
-                        for d in df]
-            else:
-                return StocksDashboard.check_valid(df[0])
-        if isinstance(df, dict):
-            if all([isinstance(d, dict) for k, d in df.items()
-                    if hasattr(d, 'values')]):
-                result = {k: pd.DataFrame.from_dict(d) for k, d in df.items()
-                          if hasattr(d, 'values')}
-                self.names = list(result.keys())
-                return list(result.values())
-            elif all([isinstance(d, pd.DataFrame) for k, d in df.items()
-                      if hasattr(d, 'values')]):
-                self.names = list(df.keys())
-                return list(df.values())
-            else:
-                raise(ValueError("Dict containing objects" +
-                                 " of tpye %s." % type(df) +
-                                 "Please convert to format" +
-                                 " \{'name': \{'date': ..., 'values': ...\}\}"
-                                 "or {'name': {'date': pd.DataFrame}."))
-        return True
-
-    def check_datasource(self, df, inplace=False):
-        # Check df is pandas or list of pandas
-
-        result = self.check_valid(df)
-
-        if not isinstance(result, bool):
-            df = result
-
-        if not isinstance(df, (list, dict)):
-            # Convert to a list of, at least,
-            # one element, to be able to iterate.
-            if not isinstance(df, pd.DataFrame):
-                df = [pd.DataFrame(df)]
-            else:
-                df = [df]
-        return copy.deepcopy(df)
-
     @staticmethod
     def get_x_y(data, column):
         """
@@ -213,10 +136,8 @@ class StocksDashboard():
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
 
-        data = self.check_datasource(input_data)
+        data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
-
-        names = self.retrieve_names(data)
 
         p_to_hover = []
         for i, stock in enumerate(data):
@@ -281,9 +202,93 @@ class StocksDashboard():
         return curdoc()
 
 
-class Formatter(StocksDashboard):
+class Formatter():
 
-    def __init__(self, sdb):
-        if type(sdb) != 'StocksDashboard':
-            raise(ValueError("'sdb' should be of class 'StocksDashboard'." +
-                             "Found class %s" % type(sdb)))
+    def __init__(self):
+        pass
+
+    def format_data(self, data):
+        return self.check_datasource(data)
+
+    def check_variables(self, varname=None):
+
+        def _is_valid_type(__varname=None, __value=None):
+            if not __value:
+                msg = "'%s cannot be None.'" % __varname
+                raise(ValueError(msg))
+            elif not isinstance(__value, int):
+                msg = "'%s cannot be of" % __varname + \
+                      "type %s, must be 'int'" % type(__value)
+                raise (TypeError(msg))
+            else:
+                return True
+
+        if varname and hasattr(self, varname):
+            return _is_valid_type(varname, getattr(self, varname))
+        else:
+            for _varname, _value in self.__dict__.items():
+                if _varname in ['width', 'height', 'ncols']:
+                    _is_valid_type(_varname, _value)
+
+    def retrieve_names(self, data):
+        if self.names and len(self.names[-1]) == len(data):
+            names = self.names[-1]
+        else:
+            names = np.arange(len(data))
+        return names
+
+    def check_valid(self, df):
+        """
+            Check that the dataframes for plotting are the valid type.
+        """
+        if not (df is None or isinstance(df,
+                                         (pd.DataFrame, pd.Series,
+                                          list, dict, np.ndarray))):
+
+            raise(ValueError("Inapropiate value of df: %s." % df +
+                             "Expected pandas.DataFrame, pandas.Series, " +
+                             "or list of pandas objects"""))
+
+        if isinstance(df, list):
+            if all([isinstance(d, dict) for d in df]):
+                return [pd.DataFrame.from_dict(d)
+                        if not isinstance(d.values(), dict)
+                        else StocksDashboard.check_valid(d)
+                        for d in df]
+            else:
+                return StocksDashboard.check_valid(df[0])
+        if isinstance(df, dict):
+            if all([isinstance(d, dict) for k, d in df.items()
+                    if hasattr(d, 'values')]):
+                result = {k: pd.DataFrame.from_dict(d) for k, d in df.items()
+                          if hasattr(d, 'values')}
+                self.names = list(result.keys())
+                return list(result.values())
+            elif all([isinstance(d, pd.DataFrame) for k, d in df.items()
+                      if hasattr(d, 'values')]):
+                self.names = list(df.keys())
+                return list(df.values())
+            else:
+                raise(ValueError("Dict containing objects" +
+                                 " of tpye %s." % type(df) +
+                                 "Please convert to format" +
+                                 " \{'name': \{'date': ..., 'values': ...\}\}"
+                                 "or {'name': {'date': pd.DataFrame}."))
+        return True
+
+    def check_datasource(self, df, inplace=False):
+        # Check df is pandas or list of pandas
+
+        result = self.check_valid(df)
+
+        if not isinstance(result, bool):
+            df = result
+
+        if not isinstance(df, (list, dict)):
+            # Convert to a list of, at least,
+            # one element, to be able to iterate.
+            if not isinstance(df, pd.DataFrame):
+                df = [pd.DataFrame(df)]
+            else:
+                df = [df]
+        return copy.deepcopy(df), self.names
