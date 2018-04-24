@@ -14,9 +14,6 @@ WIDTH = 1024
 HEIGHT = 648
 
 
-__all__ = ['StocksDashboard', 'convert_to_datetime', 'get_colors']
-
-
 def convert_to_datetime(x):
     return np.array(x, dtype=np.datetime64)
 

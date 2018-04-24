@@ -1,7 +1,9 @@
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import pytest
-from ..stocksdashboard.stocksdashboard import StocksDashboard as sdb
+from sdb import StocksDashboard as sdb
 
 
 def test_init_variables_None():
@@ -52,3 +54,10 @@ def test_init_variables_int():
     for _test_value in _test_values:
         for _varname in _vars:
             sdb(**{_varname: _test_value})
+
+
+def test_init_unexpected_attribute():
+    with pytest.raises(TypeError) as excinfo:
+        sdb(span=10)
+    assert ("__init__() got an unexpected keyword argument 'span'"
+            in str(excinfo))
