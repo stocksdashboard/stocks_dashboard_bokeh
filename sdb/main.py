@@ -20,4 +20,6 @@ aapl_avg = pd.DataFrame([aapl_dates,
                         index=['date', 'adj_close']).T
 StocksDashboard().build_dashboard(data1={'AAPL': AAPL, 'GOOG': GOOG,
                                          'IBM': IBM, 'MSFT': MSFT},
-                                  data2={'AAPL_avg': aapl_avg})
+                                  data2={'AAPL_avg': aapl_avg},
+                                  params={'line_width': 2},
+                                  params2={'line_width': 1.5})

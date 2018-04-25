@@ -157,7 +157,7 @@ class StocksDashboard():
 
     @staticmethod
     def get_plots_params(**kwargs):
-        if isinstance(kwargs, list):
+        if isinstance(kwargs, (list, tuple)):
             params1 = kwargs[0]
             if len(kwargs) == 2:
                 params2 = kwargs[1]
@@ -171,13 +171,12 @@ class StocksDashboard():
             params2 = kwargs
         return params1, params2
 
-    def build_dashboard(self, data1=None, data2=None,
-                        title="stocks.py example",
-                        output_filename="stocks", **kwargs):
+    def build_dashboard(self, data1=None, data2=None, params={}, params2={},
+                        title="stocks.py example", **kwargs):
+        if params:
+            params2 = params
 
-        params1, params2 = StocksDashboard.get_plots_params(**kwargs)
-
-        p1 = self.plot_stock(input_data=data1, **params1)
+        p1 = self.plot_stock(input_data=data1, **params)
         p2 = self.plot_stock(input_data=data2, **params2)
 
         # open a browser
@@ -197,7 +196,7 @@ class StocksDashboard():
         else:
             curdoc().add_root(layout)
         curdoc().title = title
-        output_file("%s.html" % output_filename, title=title)
+        # output_file("%s.html" % output_filename, title=title)
         return curdoc()
 
 
