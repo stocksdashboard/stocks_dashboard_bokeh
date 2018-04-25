@@ -204,31 +204,11 @@ class StocksDashboard():
 
 class Formatter():
 
-    """
-        Formats data to valid data accepted by StocksDashboard.
-
-        Accepted formats:
-            - dict of dicts:
-                - must contains at least one ts column to be plotted
-                  (set int :meth:StocksDashboard.build_dashboard()`:
-                  {'GOOGL' : {'dates': ..., 'adj_close': ...}}
-            - dict of pd.Series
-                - index will be used as dates
-            - dict of pandas.DataFrame:
-                - index will be used as dates
-                - data from `column` in StocksDashboard.plot_stock()
-                  will be used.
-            - dict of np.array
-                - index will be a list of numbers
-                - no column will be selected.
-            - list of dicts with keys ('dates' and column):
-                [{'dates': ..., 'adj_close': ...},
-                 {'dates': ..., 'adj_close': ...}]
-            - list of pd.Series / pd.DataFrame.
-    """
-
     def __init__(self):
         self.name = None
+
+    def format_data(self, data):
+        return self.check_datasource(data)
 
     def retrieve_names(self, data):
         """
@@ -245,87 +225,57 @@ class Formatter():
         """
             Check that the dataframes for plotting are the valid type.
         """
-        def __all_type_equal(data, data_type=dict):
-            """
-            Parameters
-            ------
-            data: iterable object
-            data_type: object
-                Data type (class) to check if elements belong to.
+        def __is_valid_type(data):
+            __valid_types = (pd.DataFrame, pd.Series, list, dict, np.ndarray)
 
-            Returns
-            -------
-            result: bool
-                True if all elements in data are of type ``data_type``.
-            """
-            result = all([isinstance(d, data_type) for d in data])
-            return result
+            if not (data is None or isinstance(data, __valid_types)):
 
-        # Check data is valid type:
-        # (pd.DataFrame, pd.Series, list, dict, np.ndarray)
-        self.__is_valid_type(data)
+                raise(ValueError("Inapropiate value of df: %s." % data +
+                                 "Expected pandas.DataFrame, pandas.Series, " +
+                                 "or list of pandas objects"""))
+        # Check data is valid type
+        __is_valid_type(data)
 
         if isinstance(data, list):
-            return self.__process_list(data)
+            if all([isinstance(d, dict) for d in data]):
+                return [pd.DataFrame.from_dict(d)
+                        if not isinstance(d.values(), dict)
+                        else StocksDashboard.check_valid(d)
+                        for d in data]
+            else:
+                return StocksDashboard.check_valid(data[0])
+        if isinstance(data, dict):
+            if all([isinstance(d, dict) for k, d in data.items()
+                    if hasattr(d, 'values')]):
+                result = {k: pd.DataFrame.from_dict(d) for k, d in data.items()
+                          if hasattr(d, 'values')}
+                self.names = list(result.keys())
+                return list(result.values())
+            elif all([isinstance(d, pd.DataFrame) for k, d in data.items()
+                      if hasattr(d, 'values')]):
+                self.names = list(data.keys())
+                return list(data.values())
+            else:
+                raise(ValueError("Dict containing objects" +
+                                 " of tpye %s." % type(data) +
+                                 "Please convert to format" +
+                                 " \{'name': \{'date': ..., 'values': ...\}\}"
+                                 "or {'name': {'date': pd.DataFrame}."))
+        return True
 
-        elif isinstance(data, dict):
-            return self.__process_dict(data)
+    def check_datasource(self, data, inplace=False):
+        # Check data is pandas or list of pandas
 
-        elif isinstance(data, (pd.Series, pd.DataFrame, np.ndarray)):
+        result = self.check_valid(data)
+
+        if not isinstance(result, bool):
+            data = result
+
+        if not isinstance(data, (list, dict)):
             # Convert to a list of, at least,
             # one element, to be able to iterate.
             if not isinstance(data, pd.DataFrame):
                 data = [pd.DataFrame(data)]
             else:
                 data = [data]
-        else:
-            raise(TypeError("Data type is not valid."))
-
-    @staticmethod
-    def __is_valid_type(data):
-        __valid_types = (pd.DataFrame, pd.Series, list, dict, np.ndarray)
-
-        if not (data is None or isinstance(data, __valid_types)):
-
-            raise(ValueError("Inappropiate value " +
-                             "of 'data' : %s. " % data +
-                             "Expected pandas.DataFrame, pandas.Series, " +
-                             "or list of pandas objects."))
-        return True
-
-    def __process_list(self, data):
-        # list of dicts
-        if all([isinstance(d, dict) for d in data]):
-            return [pd.DataFrame.from_dict(d) for d in data]
-        # data is dict of pd.Series, pd.DataFrame or np.ndarray
-        elif any([all([isinstance(d, data_type) for d in data])
-                  for data_type in (pd.Series, pd.DataFrame, np.ndarray)]):
-            return data
-        else:
-            raise(TypeError("Data is not valid. " +
-                            "If 'list' elements should be:" +
-                            " dicts, pd.Series or pd.DataFrame. " +
-                            "Found : %s" % [type(d) for d in data]))
-
-    def __process_dict(self, data):
-        self.names = list(data.keys())
-        # dict of dicts
-        if all([isinstance(d, dict) for k, d in data.items()]):
-            result = {k: pd.DataFrame.from_dict(d) for k, d in data.items()}
-            return list(result.values())
-        # dict of dataframes, pd.Series or np.ndarray
-        elif any([all([isinstance(d, data_type) for k, d in data.items()])
-                  for data_type in (pd.Series, pd.DataFrame, np.ndarray)]):
-            return list(data.values())
-        else:
-            raise(TypeError("Data not valid. Found dict containing objects" +
-                            " of tpye %s." % [type(d) for d in data] +
-                            "Please convert to format" +
-                            " \{'name': \{'date': ..., 'values': ...\}\}"
-                            "or {'name': {'date': pd.DataFrame}."))
-
-    def format_data(self, data, inplace=False):
-
-        result = self.check_valid(data)
-
-        return copy.deepcopy(result), self.names
+        return copy.deepcopy(data), self.names
