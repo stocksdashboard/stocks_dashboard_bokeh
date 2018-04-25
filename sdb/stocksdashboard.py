@@ -245,6 +245,25 @@ class Formatter():
         """
             Check that the dataframes for plotting are the valid type.
         """
+        def __all_type_equal(data, data_type=dict):
+            """
+            Parameters
+            ------
+            data: iterable object
+            data_type: object
+                Data type (class) to check if elements belong to.
+
+            Returns
+            -------
+            result: bool
+                True if all elements in data are of type ``data_type``.
+            """
+            result = all([isinstance(d, data_type) for d in data])
+            return result
+
+        # Check data is valid type:
+        # (pd.DataFrame, pd.Series, list, dict, np.ndarray)
+        self.__is_valid_type(data)
 
         if isinstance(data, list):
             return self.__process_list(data)
@@ -275,9 +294,6 @@ class Formatter():
         return True
 
     def __process_list(self, data):
-        """
-            Format list to valid type.
-        """
         # list of dicts
         if all([isinstance(d, dict) for d in data]):
             return [pd.DataFrame.from_dict(d) for d in data]
@@ -292,9 +308,6 @@ class Formatter():
                             "Found : %s" % [type(d) for d in data]))
 
     def __process_dict(self, data):
-        """
-            Format dictionary to valid type.
-        """
         self.names = list(data.keys())
         # dict of dicts
         if all([isinstance(d, dict) for k, d in data.items()]):
@@ -311,13 +324,8 @@ class Formatter():
                             " \{'name': \{'date': ..., 'values': ...\}\}"
                             "or {'name': {'date': pd.DataFrame}."))
 
-    def format_data(self, data):
-        """
-            Check if data is a valid format and give required
-            format if valid.
-        """
-        # Check data is valid type:
-        # (pd.DataFrame, pd.Series, list, dict, np.ndarray)
-        self.__is_valid_type(data)
-        result = self.format(data)
-        return result, self.names
+    def format_data(self, data, inplace=False):
+
+        result = self.check_valid(data)
+
+        return copy.deepcopy(result), self.names
