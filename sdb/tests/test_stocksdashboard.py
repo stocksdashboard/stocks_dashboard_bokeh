@@ -100,42 +100,42 @@ def test_formatter_format_data_invalid_type():
     assert(error_msg in str(excinfo))
 
 
-def test_formatter_check_valid_invalid_type():
+def test_formatter_format_invalid_type():
     data = 10
     with pytest.raises(TypeError) as excinfo:
-        Formatter().check_valid(data)
+        Formatter().format(data)
     error_msg = "Data type is not valid."
     assert(error_msg in str(excinfo))
 
 
-def test_formatter_check_valid_list():
+def test_formatter_format_list():
     # Check list of pd.DataFrame is valid
     data = [pd.DataFrame(np.random.uniform(low=low, high=high, size=(size,)))
             for i in range(3)]
-    assert Formatter().check_valid(data) == data
+    assert Formatter().format(data) == data
 
     # Check list of pd.Series is valid
     data = [pd.Series(np.random.uniform(low=low, high=high, size=(size,)))
             for i in range(3)]
-    assert Formatter().check_valid(data) == data
+    assert Formatter().format(data) == data
 
     # Check list of numpy.array is valid
     data = [np.random.uniform(low=low, high=high, size=(size,))
             for i in range(3)]
-    assert Formatter().check_valid(data) == data
+    assert Formatter().format(data) == data
 
     # Check list of strings is invalid
     data = [[random.choice(string.ascii_letters) for j in range(size)]
             for i in range(3)]
     with pytest.raises(TypeError) as excinfo:
-        Formatter().check_valid(data)
+        Formatter().format(data)
     error_msg = "Data is not valid. " + \
                 "If 'list' elements should be:" + \
                 " dicts, pd.Series or pd.DataFrame."
     assert(error_msg in str(excinfo))
 
 
-def test_formatter_check_valid_dict():
+def test_formatter_format_dict():
 
     # Check dict of dicts is valid
     data = {str(i): {'col_' + str(j): np.random.uniform(low=low,
@@ -143,7 +143,7 @@ def test_formatter_check_valid_dict():
                                                         size=(size,))
                      for j in range(3)}
             for i in range(3)}
-    result = Formatter().check_valid(data)
+    result = Formatter().format(data)
     expected = list({k: pd.DataFrame.from_dict(d)
                      for k, d in data.items()}.values())
     assert all([r.equals(e) for r, e in zip(result, expected)])
@@ -152,30 +152,30 @@ def test_formatter_check_valid_dict():
     data = {str(i): pd.DataFrame(np.random.uniform(low=low, high=high,
                                                    size=(size,)))
             for i in range(3)}
-    assert Formatter().check_valid(data) == list(data.values())
+    assert Formatter().format(data) == list(data.values())
 
     # Check dict of pd.Series is valid
     data = {str(i): pd.Series(np.random.uniform(low=low, high=high,
                                                 size=(size,)))
             for i in range(3)}
-    assert Formatter().check_valid(data) == list(data.values())
+    assert Formatter().format(data) == list(data.values())
 
     # Check dict of numpy.array is valid
     data = {str(i): np.random.uniform(low=low, high=high, size=(size,))
             for i in range(3)}
-    print(Formatter().check_valid(data))
-    assert Formatter().check_valid(data) == list(data.values())
+    print(Formatter().format(data))
+    assert Formatter().format(data) == list(data.values())
 
     # Check dict of strings is invalid
     data = {str(i): [random.choice(string.ascii_letters) for j in range(size)]
             for i in range(3)}
     with pytest.raises(TypeError) as excinfo:
-        Formatter().check_valid(data)
+        Formatter().format(data)
     error_msg = "Data not valid. Found dict containing objects"
     assert(error_msg in str(excinfo))
 
 
-def test_formatter_check_valid_dict_names():
+def test_formatter_format_dict_names():
     # Check dict of dicts is valid
     data = {str(i): {'col_' + str(j): np.random.uniform(low=low,
                                                         high=high,
@@ -183,7 +183,7 @@ def test_formatter_check_valid_dict_names():
                      for j in range(3)}
             for i in range(3)}
     f = Formatter()
-    f.check_valid(data)
+    f.format(data)
     assert f.names == list(data.keys())
 
     # Check dict of pd.DataFrame is valid
@@ -191,7 +191,7 @@ def test_formatter_check_valid_dict_names():
                                                    size=(size,)))
             for i in range(3)}
     f = Formatter()
-    f.check_valid(data)
+    f.format(data)
     assert f.names == list(data.keys())
 
     # Check dict of pd.Series is valid
@@ -199,20 +199,20 @@ def test_formatter_check_valid_dict_names():
                                                 size=(size,)))
             for i in range(3)}
     f = Formatter()
-    f.check_valid(data)
+    f.format(data)
     assert f.names == list(data.keys())
 
     # Check dict of numpy.array is valid
     data = {str(i): np.random.uniform(low=low, high=high, size=(size,))
             for i in range(3)}
     f = Formatter()
-    f.check_valid(data)
+    f.format(data)
     assert f.names == list(data.keys())
 
     # Check dict of strings is invalid
     data = {str(i): [random.choice(string.ascii_letters) for j in range(size)]
             for i in range(3)}
     with pytest.raises(TypeError) as excinfo:
-        Formatter().check_valid(data)
+        Formatter().format(data)
     error_msg = "Data not valid. Found dict containing objects"
     assert(error_msg in str(excinfo))

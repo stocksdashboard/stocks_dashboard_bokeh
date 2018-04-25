@@ -102,17 +102,15 @@ class StocksDashboard():
             Sequence with the time series to be plotted.
 
         """
-        if (isinstance(data, (pd.Series, pd.DataFrame, dict))):
-            if isinstance(data, pd.Series):
-                y = data.copy()
-            elif isinstance(data, (pd.DataFrame, dict)):
-                if column in data:
-                    y = data[column]
-                else:
-                    raise(ValueError("Selected column: '%s'" % column +
-                                     " not in 'data' variable of type" +
-                                     " %s." % type(data)))
-
+        if isinstance(data, pd.Series):
+            return data.copy(), data.copy()
+        elif isinstance(data, (pd.DataFrame, dict)):
+            if column in data:
+                y = data[column]
+            else:
+                raise(ValueError("Selected column: '%s'" % column +
+                                 " not in 'data' variable of type" +
+                                 " %s." % type(data)))
             if 'date' in data:
                 x = convert_to_datetime(data['date'])
             else:
@@ -120,10 +118,11 @@ class StocksDashboard():
                     x = data.index
                 else:
                     x = np.arange(len(y))
+            return x, y
         else:
             y = data
             x = np.arange(len(y))
-        return x, y
+            return x, y
 
     def plot_stock(self, input_data=None, p=None, column='adj_close',
                    title="Stock Closing Prices", ylabel='Price',
@@ -241,9 +240,9 @@ class Formatter():
             names = np.arange(len(data))
         return names
 
-    def check_valid(self, data):
+    def format(self, data):
         """
-            Check that the dataframes for plotting are the valid type.
+            Format data for plotting.
         """
 
         if isinstance(data, list):
@@ -278,7 +277,7 @@ class Formatter():
         """
             Format list to valid type.
         """
-        # list of dicts
+        # list of dictsxs
         if all([isinstance(d, dict) for d in data]):
             return [pd.DataFrame.from_dict(d) for d in data]
         # data is dict of pd.Series, pd.DataFrame or np.ndarray
