@@ -90,13 +90,21 @@ def test_init_unexpected_attribute():
 # Test Formatter()
 
 
-def test_formatter_check_valid_invalid_type():
+def test_formatter_format_data_invalid_type():
     data = 10
     with pytest.raises(ValueError) as excinfo:
-        Formatter().check_valid(data)
+        Formatter().format_data(data)
     error_msg = "Inappropiate value of 'data' : %s. " % data + \
                 "Expected pandas.DataFrame, pandas.Series, " + \
                 "or list of pandas objects."
+    assert(error_msg in str(excinfo))
+
+
+def test_formatter_check_valid_invalid_type():
+    data = 10
+    with pytest.raises(TypeError) as excinfo:
+        Formatter().check_valid(data)
+    error_msg = "Data type is not valid."
     assert(error_msg in str(excinfo))
 
 
