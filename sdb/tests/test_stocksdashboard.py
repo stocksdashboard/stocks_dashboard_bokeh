@@ -4,22 +4,6 @@ from __future__ import print_function
 
 import pytest
 from sdb import StocksDashboard as sdb
-from sdb import Formatter
-
-import numpy as np
-
-low = 0
-high = 100
-size = 50
-np.random.seed(42)
-
-data1 = {'A': np.random.uniform(low=low, high=high, size=(size,)),
-         'B': np.random.uniform(low=low, high=high, size=(size,)),
-         'C': np.random.uniform(low=low, high=high, size=(size,))}
-
-data2 = {'X': np.random.uniform(low=low, high=high, size=(size,)),
-         'Y': np.random.uniform(low=low, high=high, size=(size,)),
-         'Z': np.random.uniform(low=low, high=high, size=(size,))}
 
 
 def test_init_variables_None():
@@ -77,11 +61,3 @@ def test_init_unexpected_attribute():
         sdb(span=10)
     assert ("__init__() got an unexpected keyword argument 'span'"
             in str(excinfo))
-
-
-def test_init_formatter_type():
-    _sdb = sdb().build_dashboard(data1=data1, data2=data2)
-    with pytest.raises(ValueError) as excinfo:
-        Formatter(_sdb)
-    assert ("'sdb' should be of class 'StocksDashboard'." +
-            "Found class %s" % type(_sdb) in str(excinfo))
