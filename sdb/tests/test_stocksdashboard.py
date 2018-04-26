@@ -87,6 +87,44 @@ def test_init_unexpected_attribute():
     assert ("__init__() got an unexpected keyword argument 'span'"
             in str(excinfo))
 
+
+def test_update_params():
+    # Test combine params with kwargs
+    expected = {'color': 'blue', 'line_style': 'dot', 'line_width': 1.5}
+    result = sdb.update_params(params={'line_style': 'dot',
+                                       'color': 'blue'},
+                               kwargs={'line_width': 1.5})
+    assert result == expected
+
+    # Test combine params with kwargs for different names.
+    expected = {'AAPL': {'color': 'blue', 'line_width': 1.5},
+                'GOOGL': {'line_style': 'dot', 'line_width': 1.5}}
+    result = sdb.update_params(params={'GOOGL': {'line_style': 'dot'},
+                                       'AAPL': {'color': 'blue'}},
+                               kwargs={'line_width': 1.5},
+                               names=['GOOGL', 'AAPL'])
+    assert result == expected
+
+
+def test_add_color_and_legend_legend():
+    expected = {'color': 'black', 'legend': 'ABC'}
+    result = sdb.add_color_and_legend({}, legend='ABC')
+    assert result == expected
+
+    expected = {'color': 'black', 'legend': 'A'}
+    result = sdb.add_color_and_legend({'legend': 'A'}, legend='ABC')
+    assert result == expected
+
+
+def test_add_color_and_legend_color():
+    expected = {'color': 'blue', 'legend': ''}
+    result = sdb.add_color_and_legend({}, color='blue')
+    assert result == expected
+
+    expected = {'color': 'red', 'legend': ''}
+    result = sdb.add_color_and_legend({'color': 'red'}, color='blue')
+    assert result == expected
+
 # Test Formatter()
 
 

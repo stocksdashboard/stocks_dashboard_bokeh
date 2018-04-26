@@ -30,9 +30,6 @@ def get_colors(number_of_colors, palette_name='Category20'):
 
 
 class StocksDashboard():
-    widgets = None
-    sliders = None
-
     tooltips = [
         ('date', '$x{%F}'),
         ('value', '@y{0.000}')
@@ -124,9 +121,81 @@ class StocksDashboard():
             x = np.arange(len(y))
             return x, y
 
+    @staticmethod
+    def update_params(params, kwargs, names=None):
+        """
+            Update the aesthetics for plotting. Combine params and kwargs.
+
+            Parameters
+            ----------
+            params: dict or dict of dicts
+                Dict with params or dict with names and params per name.
+            kwargs: dict
+                Dict with general params for plotting.
+            names: list or sequence of strings, default None
+                List of names to be plotted.
+
+            Returns
+            -------
+            result: dict
+                Dict containing the parameters to use in the plotting.
+                For more details see :Examples:
+
+            Examples
+            --------
+
+            If params does not contains names:
+                - Combine them:
+                >>> import StocksDashboard as sdb
+                >>> sdb.update_params(params = {'line_style': 'dot',
+                ...                             'color': 'blue'},
+                ...                   kwargs = {'line_width': 1.5})
+                {'color': 'blue', 'line_style': 'dot', 'line_width': 1.5}
+            If params contains names:
+                - Update each dict:
+                >>> sdb.update_params(params = {'GOOGL': {'line_style': 'dot'},
+                ...                             'AAPL' :{'color': 'blue'}},
+                ...                   kwargs = {'line_width': 1.5},
+                ...                   names = ['GOOGL', 'AAPL'])
+                {'AAPL': {'color': 'blue', 'line_width': 1.5},
+                'GOOGL': {'line_style': 'dot', 'line_width': 1.5}}
+            If both ``params`` and ``kwargs`` are empty, ``kwargs``
+            is returned.
+                >>> sdb.update_params(params = {}, kwargs={})
+                {}
+        """
+        if params or kwargs:
+            if not names or (names and not any([n in params for n in names])):
+                params.update(kwargs)
+            else:
+                for n in names:
+                    if n in params:
+                        params[n].update(kwargs)
+                    else:
+                        params[n] = kwargs
+            return params
+        else:
+            return kwargs
+
+    @staticmethod
+    def add_color_and_legend(params, legend='', color='black'):
+        __params = copy.deepcopy(params)
+        if 'legend' not in __params:
+            __params['legend'] = legend
+        if 'color' not in __params:
+            __params['color'] = color
+        return __params
+
+    def get_params(self, params, name, color):
+        """ Try to find specific parameters for a given name."""
+        try:
+            return self.add_color_and_legend(params[name], name, color)
+        except (TypeError, KeyError):
+            return self.add_color_and_legend(params, name, color)
+
     def plot_stock(self, input_data=None, p=None, column='adj_close',
                    title="Stock Closing Prices", ylabel='Price',
-                   add_hover=True, **kwargs):
+                   add_hover=True, params={}, **kwargs):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
@@ -137,14 +206,17 @@ class StocksDashboard():
 
         data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
+        params = self.update_params(params, kwargs, names)
 
         p_to_hover = []
         for i, stock in enumerate(data):
             x, y = self.get_x_y(stock, column)
-            __p = p.line(x, y, color=colors[i],
-                         legend=names[i], **kwargs)  # _df.name
+            __params = self.get_params(params, names[i], colors[i])
+            __p = p.line(x, y, **__params)
             p_to_hover.append(__p)
 
+        assert(p_to_hover == len(data)), "Number of Lines " + \
+                                         "don't match data dimension."
         p.legend.location = "top_left"
         p.legend.click_policy = "hide"
         if add_hover:
@@ -155,49 +227,21 @@ class StocksDashboard():
             p.add_tools(hover)
         return p
 
-    @staticmethod
-    def get_plots_params(**kwargs):
-        if isinstance(kwargs, list):
-            params1 = kwargs[0]
-            if len(kwargs) == 2:
-                params2 = kwargs[1]
-            elif len(kwargs) == 1:
-                params2 = params1
-            else:
-                raise(ValueError("If list of paramenters passed per plot," +
-                                 "the maximum number of list is 2."))
-        else:
-            params1 = kwargs
-            params2 = kwargs
-        return params1, params2
+    def build_dashboard(self, data1=None, data2=None, params={}, params2={},
+                        title="stocks.py example", **kwargs):
+        if params and not params2:
+            params2 = params
 
-    def build_dashboard(self, data1=None, data2=None,
-                        title="stocks.py example",
-                        output_filename="stocks", **kwargs):
-
-        params1, params2 = StocksDashboard.get_plots_params(**kwargs)
-
-        p1 = self.plot_stock(input_data=data1, **params1)
-        p2 = self.plot_stock(input_data=data2, **params2)
+        p1 = self.plot_stock(input_data=data1, params=params, **kwargs)
+        p2 = self.plot_stock(input_data=data2, params=params2, **kwargs)
 
         # open a browser
         layout = gridplot([p1, p2],
                           plot_width=self.width, plot_height=self.height,
                           ncols=self.ncols)
-
-        # show(layout)
-        if self.widgets:
-            inputs = widgetbox(self.sliders.values())
-            # for w in self.sliders.values():
-            #     # print(w)
-            #     w.on_change('value',
-            # self.on_development().build_dashboard().update_data)
-
-            curdoc().add_root(row(inputs, layout, width=self.width))
-        else:
-            curdoc().add_root(layout)
+        curdoc().add_root(layout)
         curdoc().title = title
-        output_file("%s.html" % output_filename, title=title)
+        # output_file("%s.html" % output_filename, title=title)
         return curdoc()
 
 
