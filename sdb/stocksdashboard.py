@@ -124,9 +124,68 @@ class StocksDashboard():
             x = np.arange(len(y))
             return x, y
 
+    @staticmethod
+    def update_params(params, kwargs, names=None):
+        """
+            Update the aesthetics for plotting. Combine params and kwargs.
+
+            Parameters
+            ----------
+            params: dict or dict of dicts
+                Dict with params or dict with names and params per name.
+            kwargs: dict
+                Dict with general params for plotting.
+            names: list or sequence of strings, default None
+                List of names to be plotted.
+
+            Returns
+            -------
+            result: dict
+                Dict containing the parameters to use in the plotting.
+                For more details see :Examples:
+            Examples
+            --------
+
+            If params does not contains names:
+                - Combine them:
+                >>> import StocksDashboard as sdb
+                >>> sdb.update_params(params = {'line_style': 'dot',
+                ...                             'color': 'blue'},
+                ...                   kwargs = {'line_width': 1.5})
+                {'color': 'blue', 'line_style': 'dot', 'line_width': 1.5}
+            If params contains names:
+                - Update each dict:
+                >>> sdb.update_params(params = {'GOOGL': {'line_style': 'dot'},
+                ...                             'AAPL' :{'color': 'blue'}},
+                ...                   kwargs = {'line_width': 1.5},
+                ...                   names = ['GOOGL', 'AAPL'])
+                {'AAPL': {'color': 'blue', 'line_width': 1.5},
+                'GOOGL': {'line_style': 'dot', 'line_width': 1.5}}
+            If both ``params`` and ``kwargs`` are empty, ``kwargs``
+            is returned.
+                >>> sdb.update_params(params = {}, kwargs={})
+                {}
+        """
+        if params or kwargs:
+            if not names or (names and not any([n in params for n in names])):
+                params.update(kwargs)
+            else:
+                for n in names:
+                    params[n].update(kwargs)
+            return params
+        else:
+            return kwargs
+
+    def get_params(self, params, name):
+        """ Try to find specific parameters for a given name."""
+        try:
+            return params[name]
+        except (TypeError, KeyError):
+            return params
+
     def plot_stock(self, input_data=None, p=None, column='adj_close',
                    title="Stock Closing Prices", ylabel='Price',
-                   add_hover=True, **kwargs):
+                   add_hover=True, params={}, **kwargs):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
@@ -136,13 +195,16 @@ class StocksDashboard():
             p.yaxis.axis_label = ylabel
 
         data, names = Formatter().format_data(input_data)
+
         colors = get_colors(len(data))
+        params = self.update_params(params, kwargs, names)
 
         p_to_hover = []
         for i, stock in enumerate(data):
             x, y = self.get_x_y(stock, column)
+            __params = self.get_params(params, names[i])
             __p = p.line(x, y, color=colors[i],
-                         legend=names[i], **kwargs)  # _df.name
+                         legend=names[i], **__params)
             p_to_hover.append(__p)
 
         p.legend.location = "top_left"
@@ -176,8 +238,8 @@ class StocksDashboard():
         if params:
             params2 = params
 
-        p1 = self.plot_stock(input_data=data1, **params)
-        p2 = self.plot_stock(input_data=data2, **params2)
+        p1 = self.plot_stock(input_data=data1, params=params, **kwargs)
+        p2 = self.plot_stock(input_data=data2, params=params2, **kwargs)
 
         # open a browser
         layout = gridplot([p1, p2],
