@@ -218,6 +218,8 @@ class StocksDashboard():
             __p = p.line(x, y, **__params)
             p_to_hover.append(__p)
 
+        assert(p_to_hover == len(data)), "Number of Lines " + \
+                                         "don't match data dimension."
         p.legend.location = "top_left"
         p.legend.click_policy = "hide"
         if add_hover:
@@ -227,22 +229,6 @@ class StocksDashboard():
                                                  renderers=p_to_hover)
             p.add_tools(hover)
         return p
-
-    @staticmethod
-    def get_plots_params(**kwargs):
-        if isinstance(kwargs, (list, tuple)):
-            params1 = kwargs[0]
-            if len(kwargs) == 2:
-                params2 = kwargs[1]
-            elif len(kwargs) == 1:
-                params2 = params1
-            else:
-                raise(ValueError("If list of paramenters passed per plot," +
-                                 "the maximum number of list is 2."))
-        else:
-            params1 = kwargs
-            params2 = kwargs
-        return params1, params2
 
     def build_dashboard(self, data1=None, data2=None, params={}, params2={},
                         title="stocks.py example", **kwargs):
