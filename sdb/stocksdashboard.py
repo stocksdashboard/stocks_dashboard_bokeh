@@ -122,7 +122,8 @@ class StocksDashboard():
             return x, y
 
     @staticmethod
-    def update_params(params, kwargs, names=None):
+    def update_params(params, kwargs={}, names=None):
+        # TODO: remove kwargs parameter
         """
             Update the aesthetics for plotting. Combine params and kwargs.
 
@@ -195,7 +196,7 @@ class StocksDashboard():
 
     def plot_stock(self, input_data=None, p=None, column='adj_close',
                    title="Stock Closing Prices", ylabel='Price',
-                   add_hover=True, params={}, **kwargs):
+                   add_hover=True, params={}):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
@@ -206,8 +207,7 @@ class StocksDashboard():
 
         data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
-        params = self.update_params(params, kwargs, names)
-
+        params = self.update_params(params=params, names=names)
         p_to_hover = []
         for i, stock in enumerate(data):
             x, y = self.get_x_y(stock, column)
@@ -215,8 +215,8 @@ class StocksDashboard():
             __p = p.line(x, y, **__params)
             p_to_hover.append(__p)
 
-        assert(p_to_hover == len(data)), "Number of Lines " + \
-                                         "don't match data dimension."
+        assert(len(p_to_hover) == len(data)), "Number of Lines " + \
+                                              "don't match data dimension."
         p.legend.location = "top_left"
         p.legend.click_policy = "hide"
         if add_hover:
@@ -227,21 +227,20 @@ class StocksDashboard():
             p.add_tools(hover)
         return p
 
-    def build_dashboard(self, data1=None, data2=None, params={}, params2={},
-                        title="stocks.py example", **kwargs):
-        if params and not params2:
-            params2 = params
+    def build_dashboard(self,
+                        data_list=[],
+                        params_list=[],
+                        title="stocks.py example"):
+        plots = []
+        for data, params in zip(data_list, params_list):
+            plots.append(self.plot_stock(input_data=data, params=params))
 
-        p1 = self.plot_stock(input_data=data1, params=params, **kwargs)
-        p2 = self.plot_stock(input_data=data2, params=params2, **kwargs)
-
-        # open a browser
-        layout = gridplot([p1, p2],
-                          plot_width=self.width, plot_height=self.height,
+        layout = gridplot(plots,
+                          plot_width=self.width,
+                          plot_height=self.height,
                           ncols=self.ncols)
         curdoc().add_root(layout)
         curdoc().title = title
-        # output_file("%s.html" % output_filename, title=title)
         return curdoc()
 
 
