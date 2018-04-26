@@ -30,9 +30,6 @@ def get_colors(number_of_colors, palette_name='Category20'):
 
 
 class StocksDashboard():
-    widgets = None
-    sliders = None
-
     tooltips = [
         ('date', '$x{%F}'),
         ('value', '@y{0.000}')
@@ -242,18 +239,7 @@ class StocksDashboard():
         layout = gridplot([p1, p2],
                           plot_width=self.width, plot_height=self.height,
                           ncols=self.ncols)
-
-        # show(layout)
-        if self.widgets:
-            inputs = widgetbox(self.sliders.values())
-            # for w in self.sliders.values():
-            #     # print(w)
-            #     w.on_change('value',
-            # self.on_development().build_dashboard().update_data)
-
-            curdoc().add_root(row(inputs, layout, width=self.width))
-        else:
-            curdoc().add_root(layout)
+        curdoc().add_root(layout)
         curdoc().title = title
         # output_file("%s.html" % output_filename, title=title)
         return curdoc()
