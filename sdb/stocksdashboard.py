@@ -228,12 +228,19 @@ class StocksDashboard():
         return p
 
     def build_dashboard(self,
-                        data_list=[],
-                        params_list=[],
-                        title="stocks.py example"):
+                        input_data={},
+                        params={},
+                        title="stocks.py example",
+                        **kwargs_to_bokeh):
         plots = []
-        for data, params in zip(data_list, params_list):
-            plots.append(self.plot_stock(input_data=data, params=params))
+        __data = Formatter().format_input_data(input_data)
+        __params = Formatter().format_params(input_data, params)
+
+        for i, (plot_title, data) in enumerate(__data.items()):
+            plots.append(self.plot_stock(input_data=data,
+                                         title=plot_title,
+                                         params=__params[plot_title],
+                                         **kwargs_to_bokeh))
 
         layout = gridplot(plots,
                           plot_width=self.width,
@@ -249,7 +256,14 @@ class Formatter():
     """
         Formats data to valid data accepted by StocksDashboard.
 
-        Accepted formats:
+        Data should be contained in dicts, being the key of the dict the title
+        of each plot element:
+            - {'stocks': {'AAPL': AAPL, 'GOOG': GOOG,
+                     'IBM': IBM, 'MSFT': MSFT, ...},
+               'avg': {'AAPL_avg': aapl_avg, ...}}
+
+        Each of the values od the input data dictionary
+        should have either of the following formats:
             - dict of dicts:
                 - must contains at least one ts column to be plotted
                   (set int :meth:StocksDashboard.build_dashboard()`:
@@ -363,3 +377,32 @@ class Formatter():
         self.__is_valid_type(data)
         result = self.format(data)
         return result, self.names
+
+    def format_input_data(self, input_data):
+        assert isinstance(input_data, (dict, list)), (
+            "Data should be contained in 'dict' object or 'list'")
+        if isinstance(input_data, list):
+            return {str(i): v for i, v in enumerate(input_data)}
+        else:
+            return input_data
+
+    @staticmethod
+    def get_input_params(i, data, plot_title, params):
+        __params = {}
+        if isinstance(params, dict):
+            if plot_title in params:
+                __params = copy.deepcopy(params[plot_title])
+        elif isinstance(params, list):
+            assert(len(data) == len(params)), "If input data contains " + \
+                "a list, 'params' should contain a list of parameters" + \
+                " for each element."
+            __params = params[i]
+        return __params
+
+    def format_params(self, input_data, params):
+        assert isinstance(params, (dict, list))
+        __params = {}
+        __params = {plot_title: self.get_input_params(i, data, plot_title,
+                                                      params)
+                    for i, (plot_title, data) in enumerate(input_data.items())}
+        return __params

@@ -19,10 +19,10 @@ aapl_avg = pd.DataFrame([aapl_dates,
 
 # Multiple formats for each line.
 StocksDashboard().build_dashboard(
-    data_list=[{'AAPL': AAPL, 'GOOG': GOOG,
-                'IBM': IBM, 'MSFT': MSFT},
-               {'AAPL_avg': aapl_avg}],
-    params_list=[{'GOOG': {'line_dash': 'dashed'},
-                  'AAPL': {'color': 'blue'}},
-                 {'color': 'orange',
-                  'line_width': 1.5}])
+    input_data={'stocks': {'AAPL': AAPL, 'GOOG': GOOG,
+                           'IBM': IBM, 'MSFT': MSFT},
+                'avg': {'AAPL_avg': aapl_avg}},
+    params={'stocks': {'GOOG': {'line_dash': 'dashed'},
+                       'AAPL': {'color': 'blue'}},
+            'avg': {'color': 'orange',
+                    'line_width': 1.5}})
