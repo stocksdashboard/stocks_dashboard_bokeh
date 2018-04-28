@@ -196,7 +196,7 @@ class StocksDashboard():
 
     def plot_stock(self, input_data=None, p=None, column='adj_close',
                    title="Stock Closing Prices", ylabel='Price',
-                   add_hover=True, params={}):
+                   add_hover=True, params={}, **kwargs_to_bokeh):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
@@ -207,7 +207,8 @@ class StocksDashboard():
 
         data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
-        params = self.update_params(params=params, names=names)
+        params = self.update_params(params=params, kwargs=kwargs_to_bokeh,
+                                    names=names)
         p_to_hover = []
         for i, stock in enumerate(data):
             x, y = self.get_x_y(stock, column)
@@ -231,6 +232,7 @@ class StocksDashboard():
                         input_data={},
                         params={},
                         title="stocks.py example",
+                        ylabel='Price',
                         **kwargs_to_bokeh):
         plots = []
         __data = Formatter().format_input_data(input_data)
@@ -240,6 +242,7 @@ class StocksDashboard():
             plots.append(self.plot_stock(input_data=data,
                                          title=plot_title,
                                          params=__params[plot_title],
+                                         ylabel=ylabel,
                                          **kwargs_to_bokeh))
 
         layout = gridplot(plots,
@@ -262,7 +265,7 @@ class Formatter():
                      'IBM': IBM, 'MSFT': MSFT, ...},
                'avg': {'AAPL_avg': aapl_avg, ...}}
 
-        Each of the values od the input data dictionary
+        Each of the values of the input data dictionary
         should have either of the following formats:
             - dict of dicts:
                 - must contains at least one ts column to be plotted

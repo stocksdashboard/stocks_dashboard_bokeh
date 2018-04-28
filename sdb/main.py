@@ -25,4 +25,5 @@ StocksDashboard().build_dashboard(
     params={'stocks': {'GOOG': {'line_dash': 'dashed'},
                        'AAPL': {'color': 'blue'}},
             'avg': {'color': 'orange',
-                    'line_width': 1.5}})
+                    'line_width': 1.5}},
+    line_width=2.5)
