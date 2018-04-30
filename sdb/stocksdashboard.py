@@ -374,27 +374,28 @@ class Formatter():
         assert isinstance(input_data, (dict, list)), (
             "Data should be contained in 'dict' object or 'list'")
         if isinstance(input_data, list):
-            return {str(i): v for i, v in enumerate(input_data)}
+            return {"plot_" + str(i): v for i, v in enumerate(input_data)}
         else:
             return input_data
 
     @staticmethod
-    def _get_input_params(i, data, plot_title, params):
+    def _get_input_params(i, data, plot_title, params, data_dim):
         _params = {}
         if isinstance(params, dict):
             if plot_title in params:
                 _params = copy.deepcopy(params[plot_title])
         elif isinstance(params, list):
-            assert(len(data) == len(params)), "If input data contains " + \
+            assert(data_dim == len(params)), "If input data contains " + \
                 "a list, 'params' should contain a list of parameters" + \
                 " for each element."
-            _params = params[i]
+            _params = copy.deepcopy(params[i])
         return _params
 
     def format_params(self, input_data, params):
-        assert isinstance(params, (dict, list))
+        if not isinstance(params, (dict, list)):
+            raise(TypeError("'params' should be either 'dict' or 'list."))
         _params = {}
         _params = {plot_title: self._get_input_params(i, data, plot_title,
-                                                      params)
+                                                      params, len(input_data))
                    for i, (plot_title, data) in enumerate(input_data.items())}
         return _params
