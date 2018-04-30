@@ -44,9 +44,9 @@ class StocksDashboard():
         self.width = width
         self.height = height
         self.ncols = ncols
-        self.check_variables()
+        self._check_variables()
 
-    def check_variables(self, varname=None):
+    def _check_variables(self, varname=None):
 
         def _is_valid_type(__varname=None, __value=None):
             if not __value:
@@ -67,8 +67,8 @@ class StocksDashboard():
                     _is_valid_type(_varname, _value)
 
     @staticmethod
-    def create_hover(tooltips=[('date', '$x{%F}'), ('value', '@y{0.000}')],
-                     formatters={'$x': 'datetime'}, mode='vline', **kwargs):
+    def _create_hover(tooltips=[('date', '$x{%F}'), ('value', '@y{0.000}')],
+                      formatters={'$x': 'datetime'}, mode='vline', **kwargs):
         hover = HoverTool(**kwargs)
         hover.tooltips = tooltips
         hover.formatters = formatters
@@ -76,7 +76,7 @@ class StocksDashboard():
         return hover
 
     @staticmethod
-    def get_x_y(data, column):
+    def _get_x_y(data, column):
         """
             Get the x and y coordinates to be plotted in the line graph.
 
@@ -122,7 +122,8 @@ class StocksDashboard():
             return x, y
 
     @staticmethod
-    def update_params(params, kwargs, names=None):
+    def _update_params(params, kwargs={}, names=None):
+        # TODO: remove kwargs parameter
         """
             Update the aesthetics for plotting. Combine params and kwargs.
 
@@ -178,24 +179,24 @@ class StocksDashboard():
             return kwargs
 
     @staticmethod
-    def add_color_and_legend(params, legend='', color='black'):
-        __params = copy.deepcopy(params)
-        if 'legend' not in __params:
-            __params['legend'] = legend
-        if 'color' not in __params:
-            __params['color'] = color
-        return __params
+    def _add_color_and_legend(params, legend='', color='black'):
+        _params = copy.deepcopy(params)
+        if 'legend' not in _params:
+            _params['legend'] = legend
+        if 'color' not in _params:
+            _params['color'] = color
+        return _params
 
-    def get_params(self, params, name, color):
+    def _get_params(self, params, name, color):
         """ Try to find specific parameters for a given name."""
         try:
-            return self.add_color_and_legend(params[name], name, color)
+            return self._add_color_and_legend(params[name], name, color)
         except (TypeError, KeyError):
-            return self.add_color_and_legend(params, name, color)
+            return self._add_color_and_legend(params, name, color)
 
-    def plot_stock(self, input_data=None, p=None, column='adj_close',
-                   title="Stock Closing Prices", ylabel='Price',
-                   add_hover=True, params={}, **kwargs):
+    def _plot_stock(self, input_data=None, p=None, column='adj_close',
+                    title="Stock Closing Prices", ylabel='Price',
+                    add_hover=True, params={}, **kwargs_to_bokeh):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
@@ -206,42 +207,50 @@ class StocksDashboard():
 
         data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
-        params = self.update_params(params, kwargs, names)
-
+        params = self._update_params(params=params, kwargs=kwargs_to_bokeh,
+                                     names=names)
         p_to_hover = []
         for i, stock in enumerate(data):
-            x, y = self.get_x_y(stock, column)
-            __params = self.get_params(params, names[i], colors[i])
-            __p = p.line(x, y, **__params)
-            p_to_hover.append(__p)
+            x, y = self._get_x_y(stock, column)
+            _params = self._get_params(params, names[i], colors[i])
+            _p = p.line(x, y, **_params)
+            p_to_hover.append(_p)
 
-        assert(p_to_hover == len(data)), "Number of Lines " + \
-                                         "don't match data dimension."
+        assert(len(p_to_hover) == len(data)), "Number of Lines " + \
+                                              "don't match data dimension."
         p.legend.location = "top_left"
         p.legend.click_policy = "hide"
         if add_hover:
-            hover = StocksDashboard.create_hover(self.tooltips,
-                                                 self.formatters,
-                                                 self.mode,
-                                                 renderers=p_to_hover)
+            hover = StocksDashboard._create_hover(self.tooltips,
+                                                  self.formatters,
+                                                  self.mode,
+                                                  renderers=p_to_hover)
             p.add_tools(hover)
         return p
 
-    def build_dashboard(self, data1=None, data2=None, params={}, params2={},
-                        title="stocks.py example", **kwargs):
-        if params and not params2:
-            params2 = params
+    def build_dashboard(self,
+                        input_data={},
+                        params={},
+                        title="stocks.py example",
+                        ylabel='Price',
+                        **kwargs_to_bokeh):
+        plots = []
+        _data = Formatter().format_input_data(input_data)
+        _params = Formatter().format_params(input_data, params)
 
-        p1 = self.plot_stock(input_data=data1, params=params, **kwargs)
-        p2 = self.plot_stock(input_data=data2, params=params2, **kwargs)
+        for i, (plot_title, data) in enumerate(_data.items()):
+            plots.append(self._plot_stock(input_data=data,
+                                          title=plot_title,
+                                          params=_params[plot_title],
+                                          ylabel=ylabel,
+                                          **kwargs_to_bokeh))
 
-        # open a browser
-        layout = gridplot([p1, p2],
-                          plot_width=self.width, plot_height=self.height,
+        layout = gridplot(plots,
+                          plot_width=self.width,
+                          plot_height=self.height,
                           ncols=self.ncols)
         curdoc().add_root(layout)
         curdoc().title = title
-        # output_file("%s.html" % output_filename, title=title)
         return curdoc()
 
 
@@ -250,7 +259,14 @@ class Formatter():
     """
         Formats data to valid data accepted by StocksDashboard.
 
-        Accepted formats:
+        Data should be contained in dicts, being the key of the dict the title
+        of each plot element:
+            - {'stocks': {'AAPL': AAPL, 'GOOG': GOOG,
+                     'IBM': IBM, 'MSFT': MSFT, ...},
+               'avg': {'AAPL_avg': aapl_avg, ...}}
+
+        Each of the values of the input data dictionary
+        should have either of the following formats:
             - dict of dicts:
                 - must contains at least one ts column to be plotted
                   (set int :meth:StocksDashboard.build_dashboard()`:
@@ -273,18 +289,7 @@ class Formatter():
     def __init__(self):
         self.name = None
 
-    def retrieve_names(self, data):
-        """
-            Retrieve names if the attribute 'names'
-            has the same length as data.
-        """
-        if self.names and len(self.names) == len(data):
-            names = self.names[-1]
-        else:
-            names = np.arange(len(data))
-        return names
-
-    def format(self, data):
+    def _format(self, data):
         """
             Format data for plotting.
         """
@@ -307,9 +312,9 @@ class Formatter():
 
     @staticmethod
     def __is_valid_type(data):
-        __valid_types = (pd.DataFrame, pd.Series, list, dict, np.ndarray)
+        _valid_types = (pd.DataFrame, pd.Series, list, dict, np.ndarray)
 
-        if not (data is None or isinstance(data, __valid_types)):
+        if not (data is None or isinstance(data, _valid_types)):
 
             raise(ValueError("Inappropiate value " +
                              "of 'data' : %s. " % data +
@@ -362,5 +367,35 @@ class Formatter():
         # Check data is valid type:
         # (pd.DataFrame, pd.Series, list, dict, np.ndarray)
         self.__is_valid_type(data)
-        result = self.format(data)
+        result = self._format(data)
         return result, self.names
+
+    def format_input_data(self, input_data):
+        assert isinstance(input_data, (dict, list)), (
+            "Data should be contained in 'dict' object or 'list'")
+        if isinstance(input_data, list):
+            return {"plot_" + str(i): v for i, v in enumerate(input_data)}
+        else:
+            return input_data
+
+    @staticmethod
+    def _get_input_params(i, data, plot_title, params, data_dim):
+        _params = {}
+        if isinstance(params, dict):
+            if plot_title in params:
+                _params = copy.deepcopy(params[plot_title])
+        elif isinstance(params, list):
+            assert(data_dim == len(params)), "If input data contains " + \
+                "a list, 'params' should contain a list of parameters" + \
+                " for each element."
+            _params = copy.deepcopy(params[i])
+        return _params
+
+    def format_params(self, input_data, params):
+        if not isinstance(params, (dict, list)):
+            raise(TypeError("'params' should be either 'dict' or 'list."))
+        _params = {}
+        _params = {plot_title: self._get_input_params(i, data, plot_title,
+                                                      params, len(input_data))
+                   for i, (plot_title, data) in enumerate(input_data.items())}
+        return _params

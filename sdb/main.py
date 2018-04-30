@@ -16,18 +16,14 @@ aapl_dates = np.array(AAPL['date'], dtype=np.datetime64)
 aapl_avg = pd.DataFrame([aapl_dates,
                          np.convolve(aapl, window, 'same')],
                         index=['date', 'adj_close']).T
-"""StocksDashboard().build_dashboard(data1={'AAPL': AAPL, 'GOOG': GOOG,
-                                         'IBM': IBM, 'MSFT': MSFT},
-                                  data2={'AAPL_avg': aapl_avg},
-                                  params={'line_width': 2, 'color': 'pink'},
-                                  params2={'line_width': 1.5})"""
 
 # Multiple formats for each line.
-StocksDashboard().build_dashboard(data1={'AAPL': AAPL, 'GOOG': GOOG,
-                                         'IBM': IBM, 'MSFT': MSFT},
-                                  data2={'AAPL_avg': aapl_avg},
-                                  params={'GOOG': {'line_dash': 'dashed'},
-                                          'AAPL': {'color': 'blue'}},
-                                  params2={'color': 'orange',
-                                           'line_width': 1.5},
-                                  line_width=2)
+StocksDashboard().build_dashboard(
+    input_data={'stocks': {'AAPL': AAPL, 'GOOG': GOOG,
+                           'IBM': IBM, 'MSFT': MSFT},
+                'avg': {'AAPL_avg': aapl_avg}},
+    params={'stocks': {'GOOG': {'line_dash': 'dashed'},
+                       'AAPL': {'color': 'blue'}},
+            'avg': {'color': 'orange',
+                    'line_width': 1.5}},
+    line_width=2.5)
