@@ -20,5 +20,5 @@ You need Python 3.6 or later to run `stocksdhasboard`.
 ## To run bokeh server:
 `bokeh serve --show sdb/main.py` 
 
-##Resources
+## Resources
 - [Bokeh](https://bokeh.pydata.org).
