@@ -17,7 +17,7 @@ MAINTAINER = "Mabel Villalba Jimenez"
 MAINTAINER_EMAIL = "mabelvj@gmail.com"
 setup(
     name='stocksdashboard',
-    version='0.12dev0',
+    version='0.13dev0',
     description='A package to build Stocks Dashboards in Bokeh',
     maintainer=MAINTAINER,
     maintainer_email=MAINTAINER_EMAIL,
