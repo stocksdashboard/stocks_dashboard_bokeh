@@ -16,8 +16,8 @@ with open('requirements.txt') as f:
 MAINTAINER = "Mabel Villalba Jimenez"
 MAINTAINER_EMAIL = "mabelvj@gmail.com"
 setup(
-    name='StocksDashboard',
-    version='0.11dev0',
+    name='stocksdashboard',
+    version='0.12dev0',
     description='A package to build Stocks Dashboards in Bokeh',
     maintainer=MAINTAINER,
     maintainer_email=MAINTAINER_EMAIL,
