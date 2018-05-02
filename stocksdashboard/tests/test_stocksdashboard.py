@@ -1,10 +1,15 @@
+#!/usr/bin/env python3
+# Authors: Mabel Villalba Jimenez <mabelvj@gmail.com>,
+#          Emilio Molina Martinez <emilio.mol.mar@gmail.com>
+# License: GPLv3
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import pytest
-from sdb import StocksDashboard as sdb
-from sdb import Formatter
+from stocksdashboard.stocksdashboard import StocksDashboard as sdb
+from stocksdashboard.formatter import Formatter
 
 import numpy as np
 import pandas as pd
