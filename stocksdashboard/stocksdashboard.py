@@ -111,7 +111,7 @@ class StocksDashboard():
 
         """
         if isinstance(data, pd.Series):
-            return data.copy(), data.copy()
+            return data.index.copy(), data.copy()
         elif isinstance(data, (pd.DataFrame, dict)):
             if column in data:
                 y = data[column]
@@ -263,4 +263,3 @@ class StocksDashboard():
         curdoc().add_root(layout)
         curdoc().title = title
         return curdoc()
-
