@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure
-from bokeh.plotting import output_file
+from bokeh.models import ColumnDataSource
 import warnings
 import copy
 
@@ -221,11 +221,21 @@ class StocksDashboard():
         params = self._update_params(params=params, kwargs=kwargs_to_bokeh,
                                      names=names)
         p_to_hover = []
+        __datasource = ColumnDataSource()
         for i, stock in enumerate(data):
             x, y = self._get_x_y(stock, column)
+            __datasource.add(name=names[i], data=y)
+            x_name = "x_%s" % names[i]
+            __datasource.add(name=x_name, data=x)
             _params = self._get_params(params, names[i], colors[i])
-            _p = p.line(x, y, **_params)
+            _p = p.line(x=x_name, y=names[i], source=__datasource, **_params)
             p_to_hover.append(_p)
+
+        assert(len(__datasource.data) == len(data)), (
+            "Number of elements used as source don't " +
+            "match data dimension.")
+
+        self.datasources.append(__datasource)
 
         assert(len(p_to_hover) == len(data)), "Number of Lines " + \
                                               "don't match data dimension."
