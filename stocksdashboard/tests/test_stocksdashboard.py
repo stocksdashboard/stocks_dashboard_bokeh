@@ -11,6 +11,8 @@ import pytest
 from stocksdashboard.stocksdashboard import StocksDashboard as sdb
 from stocksdashboard.formatter import Formatter
 
+from bokeh.core.properties import value
+
 import numpy as np
 import pandas as pd
 import random
@@ -114,40 +116,24 @@ def test_update_params():
 
 
 def test_add_color_and_legend_legend():
-    expected = {'color': 'black', 'legend': 'ABC'}
+    expected = {'color': 'black', 'legend': value('ABC')}
     result = sdb._add_color_and_legend({}, legend='ABC')
     assert result == expected
 
-    expected = {'color': 'black', 'legend': 'A'}
-    result = sdb._add_color_and_legend({'legend': 'A'}, legend='ABC')
+    expected = {'color': 'black', 'legend': value('A')}
+    result = sdb._add_color_and_legend({'legend': value('A')},
+                                       legend='ABC')
     assert result == expected
 
 
 def test_add_color_and_legend_color():
-    expected = {'color': 'blue', 'legend': ''}
+    expected = {'color': 'blue', 'legend': value('')}
     result = sdb._add_color_and_legend({}, color='blue')
     assert result == expected
 
-    expected = {'color': 'red', 'legend': ''}
+    expected = {'color': 'red', 'legend': value('')}
     result = sdb._add_color_and_legend({'color': 'red'}, color='blue')
     assert result == expected
-
-
-def test__plot_stock_different_length():
-    # Test dict of dicts
-    size = [10, 20, 50]
-    data = {'plot_' + str(h): {str(i): {'col_' + str(j):
-                                        np.random.uniform(low=low,
-                                                          high=high,
-                                                          size=(size[i],))
-                                        for j in range(3)}
-                               for i in range(3)}
-            for h in range(2)}
-    with pytest.raises(AssertionError) as excinfo:
-        sdb().build_dashboard(data, column='col_0')
-    print(str(excinfo))
-    assert("Number of elements used as source don't match data dimension."
-           in str(excinfo))
 
 
 # Test Formatter()
@@ -261,11 +247,11 @@ def test_formatter_format_dict():
             for i in range(3)}
     with pytest.raises(TypeError) as excinfo:
         Formatter()._format(data)
-    error_msg = "Data not valid. Found dict containing objects"
+    error_msg = "Data is not valid. Found dict containing objects"
     assert(error_msg in str(excinfo))
 
 
-def test_formatter_format_listinvalid_type():
+def test_formatter_format_list_invalid_type():
     # Check list of strings is invalid
     data = [[random.choice(string.ascii_letters) for j in range(size)]
             for i in range(3)]
