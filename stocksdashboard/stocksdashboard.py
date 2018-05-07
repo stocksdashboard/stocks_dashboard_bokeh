@@ -14,6 +14,7 @@ import pandas as pd
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
+from bokeh.core.properties import value
 import warnings
 import copy
 
@@ -43,13 +44,14 @@ def get_colors(number_of_colors, palette_name='Category20'):
 class StocksDashboard():
     tooltips = [
         ('date', '$x{%F}'),
-        ('value', '@y{0.000}')
+        ('value', '$y{0.000}')
     ]
     formatters = {
         '$x': 'datetime',
     }
     mode = 'vline'
     names = None
+    datasources = []
 
     def __init__(self, width=WIDTH, height=HEIGHT, ncols=1):
         self.width = width
@@ -193,7 +195,7 @@ class StocksDashboard():
     def _add_color_and_legend(params, legend='', color='black'):
         _params = copy.deepcopy(params)
         if 'legend' not in _params:
-            _params['legend'] = legend
+            _params['legend'] = value(legend)
         if 'color' not in _params:
             _params['color'] = color
         return _params
@@ -204,6 +206,16 @@ class StocksDashboard():
             return self._add_color_and_legend(params[name], name, color)
         except (TypeError, KeyError):
             return self._add_color_and_legend(params, name, color)
+
+    def __update_datasource(self, datasource, stock, column, name):
+        """
+            Update the object datasource with data from each stock.
+        """
+        x, y = self._get_x_y(stock, column)
+        datasource.add(name=name, data=y)
+        if 'x' not in datasource.data:
+            datasource.add(name='x', data=x)
+        return datasource
 
     def _plot_stock(self, input_data=None, p=None, column='adj_close',
                     title="Stock Closing Prices", ylabel='Price',
@@ -223,18 +235,15 @@ class StocksDashboard():
         p_to_hover = []
         __datasource = ColumnDataSource()
         for i, stock in enumerate(data):
-            x, y = self._get_x_y(stock, column)
-            __datasource.add(name=names[i], data=y)
-            x_name = "x_%s" % names[i]
-            __datasource.add(name=x_name, data=x)
+            __datasource = self.__update_datasource(__datasource, stock,
+                                                    column, names[i])
             _params = self._get_params(params, names[i], colors[i])
-            _p = p.line(x=x_name, y=names[i], source=__datasource, **_params)
+            _p = p.line(x='x', y=names[i], source=__datasource, **_params)
             p_to_hover.append(_p)
 
-        assert(len(__datasource.data) == len(data)), (
-            "Number of elements used as source don't " +
-            "match data dimension.")
-
+        assert(len(__datasource.data) == len(data) + 1), (
+            "Number of elements used as source don't match " +
+            "data dimension.")  # len(data) + 1 -> all data and the x-axis
         self.datasources.append(__datasource)
 
         assert(len(p_to_hover) == len(data)), "Number of Lines " + \
