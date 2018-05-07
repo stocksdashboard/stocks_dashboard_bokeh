@@ -132,6 +132,24 @@ def test_add_color_and_legend_color():
     result = sdb._add_color_and_legend({'color': 'red'}, color='blue')
     assert result == expected
 
+
+def test__plot_stock_different_length():
+    # Test dict of dicts
+    size = [10, 20, 50]
+    data = {'plot_' + str(h): {str(i): {'col_' + str(j):
+                                        np.random.uniform(low=low,
+                                                          high=high,
+                                                          size=(size[i],))
+                                        for j in range(3)}
+                               for i in range(3)}
+            for h in range(2)}
+    with pytest.raises(AssertionError) as excinfo:
+        sdb().build_dashboard(data, column='col_0')
+    print(str(excinfo))
+    assert("Number of elements used as source don't match data dimension."
+           in str(excinfo))
+
+
 # Test Formatter()
 
 
@@ -154,19 +172,36 @@ def test_formatter_format_invalid_type():
 
 
 def test_formatter_format_list():
+    # Check list of dicts is valid
+    data = [{'col_' + str(j): np.random.uniform(low=low,
+                                                high=high,
+                                                size=(size,))
+             for j in range(3)}]
+    _expected = pd.concat([pd.DataFrame.from_dict(d) for d in data], axis=1)
+    expected = [s.to_frame() for c, s in _expected.iteritems()]
+    result = Formatter()._format(data)
+    assert all([r.equals(e) for r, e in zip(result, expected)])
+
     # Check list of pd.DataFrame is valid
     data = [pd.DataFrame(np.random.uniform(low=low, high=high, size=(size,)))
             for i in range(3)]
-    assert Formatter()._format(data) == data
+    _expected = pd.concat(data, axis=1)
+    expected = [s.to_frame() for c, s in _expected.iteritems()]
+    result = Formatter()._format(data)
+    assert all([r.equals(e) for r, e in zip(result, expected)])
 
     # Check list of pd.Series is valid
     data = [pd.Series(np.random.uniform(low=low, high=high, size=(size,)))
             for i in range(3)]
-    assert Formatter()._format(data) == data
+    _expected = pd.concat(data, axis=1)
+    expected = [s.to_frame() for c, s in _expected.iteritems()]
+    result = Formatter()._format(data)
+    assert all([r.equals(e) for r, e in zip(result, expected)])
 
     # Check list of numpy.array is valid
     data = [np.random.uniform(low=low, high=high, size=(size,))
             for i in range(3)]
+
     assert Formatter()._format(data) == data
 
     # Check list of strings is invalid
@@ -189,26 +224,36 @@ def test_formatter_format_dict():
                      for j in range(3)}
             for i in range(3)}
     result = Formatter()._format(data)
-    expected = list({k: pd.DataFrame.from_dict(d)
-                     for k, d in data.items()}.values())
-    assert all([r.equals(e) for r, e in zip(result, expected)])
+    _expected = pd.concat({k: pd.DataFrame.from_dict(d)
+                           for k, d in list(data.items())},
+                          axis=1)
+    expected = {c: _expected.loc[:, c]
+                for c in set(_expected.columns.get_level_values(0))}
+    assert all([r.equals(e) for r, e in zip(result, list(expected.values()))])
 
     # Check dict of pd.DataFrame is valid
     data = {str(i): pd.DataFrame(np.random.uniform(low=low, high=high,
                                                    size=(size,)))
             for i in range(3)}
-    assert Formatter()._format(data) == list(data.values())
+    result = Formatter()._format(data)
+    _expected = pd.concat(data, axis=1)
+    expected = {c: _expected.loc[:, c]
+                for c in set(_expected.columns.get_level_values(0))}
+    assert all([r.equals(e) for r, e in zip(result, list(expected.values()))])
 
     # Check dict of pd.Series is valid
     data = {str(i): pd.Series(np.random.uniform(low=low, high=high,
                                                 size=(size,)))
             for i in range(3)}
-    assert Formatter()._format(data) == list(data.values())
+    result = Formatter()._format(data)
+    _expected = pd.concat(data, axis=1)
+    expected = {c: _expected.loc[:, c]
+                for c in set(_expected.columns.get_level_values(0))}
+    assert all([r.equals(e) for r, e in zip(result, list(expected.values()))])
 
     # Check dict of numpy.array is valid
     data = {str(i): np.random.uniform(low=low, high=high, size=(size,))
             for i in range(3)}
-    print(Formatter()._format(data))
     assert Formatter()._format(data) == list(data.values())
 
     # Check dict of strings is invalid
@@ -217,6 +262,52 @@ def test_formatter_format_dict():
     with pytest.raises(TypeError) as excinfo:
         Formatter()._format(data)
     error_msg = "Data not valid. Found dict containing objects"
+    assert(error_msg in str(excinfo))
+
+
+def test_formatter_format_listinvalid_type():
+    # Check list of strings is invalid
+    data = [[random.choice(string.ascii_letters) for j in range(size)]
+            for i in range(3)]
+    with pytest.raises(TypeError) as excinfo:
+        Formatter()._format(data)
+    error_msg = "Data is not valid."
+    assert(error_msg in str(excinfo))
+
+
+def test_formatter_format_dict_invalid_length():
+    size = [5, 10, 25]
+    # Check dict of numpy.array with different lenghts is invalid
+    data = {str(i): np.random.uniform(low=low, high=high,
+                                      size=(size[i],))
+            for i in range(3)}
+    with pytest.raises(AssertionError) as excinfo:
+        Formatter()._format(data)
+    error_msg = "All elements in a list of np.ndarray should have " + \
+        "the same length"
+    assert(error_msg in str(excinfo))
+
+
+def test_formatter_format_dict_invalid_index():
+    ix = [range(size), range(size), pd.date_range(start=0, periods=size)]
+    # Check dict of numpy.array with different lenghts is invalid
+    data = {str(i): pd.Series(np.random.uniform(low=low, high=high,
+                                                size=(size,)), index=ix[i])
+            for i in range(3)}
+    with pytest.raises(AssertionError) as excinfo:
+        Formatter()._format(data)
+    error_msg = "All indices in a dict of pd.Series or pd.DataFrames " + \
+                "should have the same type."
+    assert(error_msg in str(excinfo))
+
+
+def test_formatter_format_dict_invalid_type():
+    # Check list of strings is invalid
+    data = {str(i): [random.choice(string.ascii_letters) for j in range(size)]
+            for i in range(3)}
+    with pytest.raises(TypeError) as excinfo:
+        Formatter()._format(data)
+    error_msg = "Data is not valid."
     assert(error_msg in str(excinfo))
 
 
@@ -259,7 +350,7 @@ def test_formatter_format_dict_names():
             for i in range(3)}
     with pytest.raises(TypeError) as excinfo:
         Formatter()._format(data)
-    error_msg = "Data not valid. Found dict containing objects"
+    error_msg = "Data is not valid. Found dict containing objects"
     assert(error_msg in str(excinfo))
 
 

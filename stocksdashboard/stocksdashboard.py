@@ -260,6 +260,8 @@ class StocksDashboard():
         _params = Formatter().format_params(input_data, params)
 
         for i, (plot_title, data) in enumerate(_data.items()):
+            print(plot_title)
+            print(data.keys())
             plots.append(self._plot_stock(input_data=data,
                                           title=plot_title,
                                           params=_params[plot_title],
