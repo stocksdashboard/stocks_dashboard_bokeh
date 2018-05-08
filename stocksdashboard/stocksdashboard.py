@@ -262,7 +262,7 @@ class StocksDashboard():
                         input_data={},
                         params={},
                         title="stocks.py example",
-                        ylabel='Price',
+                        ylabel='Price', show=True,
                         **kwargs_to_bokeh):
         plots = []
         _data = Formatter().format_input_data(input_data)
@@ -281,6 +281,8 @@ class StocksDashboard():
                           plot_width=self.width,
                           plot_height=self.height,
                           ncols=self.ncols)
-        curdoc().add_root(layout)
-        curdoc().title = title
-        return curdoc()
+        self.layout = layout
+        if show:
+            curdoc().add_root(layout)
+            curdoc().title = title
+        return curdoc
