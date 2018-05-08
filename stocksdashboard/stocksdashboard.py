@@ -44,7 +44,7 @@ def get_colors(number_of_colors, palette_name='Category20'):
 class StocksDashboard():
     tooltips = [
         ('date', '$x{%F}'),
-        ('value', '@y{0.000}')
+        ('value', '$y{0.000}')
     ]
     formatters = {
         '$x': 'datetime',
@@ -238,9 +238,9 @@ class StocksDashboard():
             __datasource = self.__update_datasource(__datasource, stock,
                                                     column, names[i])
             _params = self._get_params(params, names[i], colors[i])
-            print(_params)
             _p = p.line(x='x', y=names[i], source=__datasource, **_params)
             p_to_hover.append(_p)
+
         assert(len(__datasource.data) == len(data) + 1), (
             "Number of elements used as source don't match " +
             "data dimension.")  # len(data) + 1 -> all data and the x-axis
@@ -262,7 +262,7 @@ class StocksDashboard():
                         input_data={},
                         params={},
                         title="stocks.py example",
-                        ylabel='Price',
+                        ylabel='Price', show=True,
                         **kwargs_to_bokeh):
         plots = []
         _data = Formatter().format_input_data(input_data)
@@ -281,6 +281,8 @@ class StocksDashboard():
                           plot_width=self.width,
                           plot_height=self.height,
                           ncols=self.ncols)
-        curdoc().add_root(layout)
-        curdoc().title = title
-        return curdoc()
+        self.layout = layout
+        if show:
+            curdoc().add_root(layout)
+            curdoc().title = title
+        return curdoc

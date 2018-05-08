@@ -76,17 +76,56 @@ class Formatter():
                              "or list of pandas objects."))
         return True
 
+    def __reformat_x_list(self, data):
+        # if all are pd.DataFrame or pd.Series -> merge indices!!
+        if any([all([isinstance(d, data_type) for d in data])
+                for data_type in (pd.Series, pd.DataFrame)]):
+            # return each of the dataframes with the merged indices
+            return [s.to_frame()
+                    for c, s in pd.concat(copy.deepcopy(data),
+                                          axis=1).iteritems()]
+
+    def __reformat_x_dict(self, data):
+        # if all are pd.DataFrame or pd.Series -> merge indices!!
+        if any([all([isinstance(d, data_type) for k, d in list(data.items())])
+                for data_type in (pd.Series, pd.DataFrame)]):
+            # return each of the dataframes with the merged indices
+            df_total = pd.concat(copy.deepcopy(data), axis=1)
+            return {c: df_total.loc[:, c]
+                    for c in set(df_total.columns.get_level_values(0))}
+
     def __process_list(self, data):
         """
             Format list to valid type.
         """
-        # list of dictsxs
+        # list of dicts
         if all([isinstance(d, dict) for d in data]):
-            return [pd.DataFrame.from_dict(d) for d in data]
-        # data is dict of pd.Series, pd.DataFrame or np.ndarray
+            result = [pd.DataFrame.from_dict(d) for d in data]
+            # Has 'date' as a column -> format to common date
+            if all(['date' in df for df in result]):
+                result = [df.set_index('date') for df in result]
+            n = len(result[0])
+            # if not all([len(df) == n for df in result]):
+            result = self.__reformat_x_list(result)
+            return result
+        # data is list of np.ndarray
+        elif all([isinstance(d, np.ndarray) for d in data]):
+            result = data
+            n = len(result[0])
+            assert(all([len(arr) == n for arr in result])), (
+                "All elements in a list of np.ndarray should have " +
+                "the same length")
+            return result
+        # data is list of pd.Series, pd.DataFrame[
         elif any([all([isinstance(d, data_type) for d in data])
-                  for data_type in (pd.Series, pd.DataFrame, np.ndarray)]):
-            return data
+                  for data_type in (pd.Series, pd.DataFrame)]):
+            # Check all index are same type
+            assert all([isinstance(d.index, type(data[0].index))
+                        for d in data]), (
+                "All indices in a list of pd.Series or pd.DataFrames " +
+                "should have the same type.")
+            result = self.__reformat_x_list(data)
+            return result
         else:
             raise(TypeError("Data is not valid. " +
                             "If 'list' elements should be:" +
@@ -99,15 +138,35 @@ class Formatter():
         """
         self.names = list(data.keys())
         # dict of dicts
-        if all([isinstance(d, dict) for k, d in data.items()]):
-            result = {k: pd.DataFrame.from_dict(d) for k, d in data.items()}
+        if all([isinstance(d, dict) for k, d in list(data.items())]):
+            result = {k: pd.DataFrame.from_dict(
+                d) for k, d in list(data.items())}
+            # Has 'date' as a column -> format to common date
+            if all(['date' in v for k, v in result.items()]):
+                result = {k: df.set_index('date')
+                          for k, df in list(result.items())}
+            result = self.__reformat_x_dict(result)
             return list(result.values())
-        # dict of dataframes, pd.Series or np.ndarray
-        elif any([all([isinstance(d, data_type) for k, d in data.items()])
-                  for data_type in (pd.Series, pd.DataFrame, np.ndarray)]):
-            return list(data.values())
+        # data is list of np.ndarray
+        elif all([isinstance(d, np.ndarray) for d in list(data.values())]):
+            result = data
+            n = len(list(result.values())[0])
+            assert(all([len(arr) == n for arr in list(result.values())])), (
+                "All elements in a list of np.ndarray should have " +
+                "the same length")
+            return list(result.values())
+        # dict of dataframes, pd.Series
+        elif any([all([isinstance(d, data_type) for d in list(data.values())])
+                  for data_type in (pd.Series, pd.DataFrame)]):
+            assert all([isinstance(d.index, type(list(data.values())[0].index))
+                        for d in list(data.values())]), (
+                "All indices in a dict of pd.Series or pd.DataFrames " +
+                "should have the same type.")
+            result = self.__reformat_x_dict(data)
+            return list(result.values())
         else:
-            raise(TypeError("Data not valid. Found dict containing objects" +
+            raise(TypeError("Data is not valid. " +
+                            "Found dict containing objects" +
                             " of tpye %s." % [type(d) for d in data] +
                             "Please convert to format" +
                             " \{'name': \{'date': ..., 'values': ...\}\}"
