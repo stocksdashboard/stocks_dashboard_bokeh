@@ -89,52 +89,6 @@ class StocksDashboard():
         return hover
 
     @staticmethod
-    def _get_x_y(data, column=None):
-        """
-            Get the x and y coordinates to be plotted in the line graph.
-
-        Params
-        ------
-        data: pd.Series, pd.DataFrame, dict, sequence
-            If dict: should contain the field 'date' in a datetime
-            format to be plotted. If not a numerical ordinal sequence
-            will be used.
-        column: str
-            Column or field from which select the timeseries. This is required
-            for pd.Series, pd.DataFrame, dict formats.
-
-        Returns
-        -------
-        x: sequence or array-like
-            Sequence with dates or numbers corresponding to the timeseries
-            steps.
-        y: sequence or array-like
-            Sequence with the time series to be plotted.
-
-        """
-        if isinstance(data, pd.Series):
-            return data.index.copy(), data.copy()
-        elif isinstance(data, (pd.DataFrame, dict)):
-            if column in data:
-                y = data[column]
-            else:
-                raise(ValueError("Selected column: '%s'" % column +
-                                 " not in 'data' variable of type" +
-                                 " %s." % type(data)))
-            if 'date' in data:
-                x = convert_to_datetime(data['date'])
-            else:
-                if hasattr(data, 'index'):
-                    x = data.index
-                else:
-                    x = np.arange(len(y))
-            return x, y
-        else:
-            y = data
-            x = np.arange(len(y))
-            return x, y
-
-    @staticmethod
     def _update_params(params, kwargs={}, names=None):
         # TODO: remove kwargs parameter
         """
@@ -211,13 +165,13 @@ class StocksDashboard():
         """
             Update the object datasource with data from each stock.
         """
-        x, y = self._get_x_y(stock, column)
+        x, y = Formatter._get_x_y(stock, column)
         datasource.add(name=name, data=y)
         if 'x' not in datasource.data:
             datasource.add(name='x', data=x)
         return datasource
 
-    def _plot_stock(self, input_data=None, p=None, column='adj_close',
+    def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
                     title="Stock Closing Prices", ylabel='Price',
                     add_hover=True, params={}, **kwargs_to_bokeh):
 
@@ -227,8 +181,7 @@ class StocksDashboard():
             p.grid.grid_line_alpha = 0.3
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
-
-        data, names = Formatter().format_data(input_data)
+        # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
         params = self._update_params(params=params, kwargs=kwargs_to_bokeh,
                                      names=names)
@@ -263,15 +216,15 @@ class StocksDashboard():
                         params={},
                         title="stocks.py example",
                         ylabel='Price', show=True,
+                        column='adj_close',
                         **kwargs_to_bokeh):
         plots = []
-        _data = Formatter().format_input_data(input_data)
+        _data, _names = Formatter().format_input_data(input_data, column)
         _params = Formatter().format_params(input_data, params)
 
         for i, (plot_title, data) in enumerate(_data.items()):
-            print(plot_title)
-            print(data.keys())
-            plots.append(self._plot_stock(input_data=data,
+            plots.append(self._plot_stock(data=data,
+                                          names=_names[plot_title],
                                           title=plot_title,
                                           params=_params[plot_title],
                                           ylabel=ylabel,

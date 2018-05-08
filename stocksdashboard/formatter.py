@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import copy
 
-
 class Formatter():
 
     """
@@ -76,7 +75,7 @@ class Formatter():
                              "or list of pandas objects."))
         return True
 
-    def __reformat_x_list(self, data):
+    def reformat_x_list(self, data):
         # if all are pd.DataFrame or pd.Series -> merge indices!!
         if any([all([isinstance(d, data_type) for d in data])
                 for data_type in (pd.Series, pd.DataFrame)]):
@@ -85,16 +84,16 @@ class Formatter():
                     for c, s in pd.concat(copy.deepcopy(data),
                                           axis=1).iteritems()]
 
-    def __reformat_x_dict(self, data):
+    def reformat_x_dict(self, data):
         # if all are pd.DataFrame or pd.Series -> merge indices!!
         if any([all([isinstance(d, data_type) for k, d in list(data.items())])
                 for data_type in (pd.Series, pd.DataFrame)]):
             # return each of the dataframes with the merged indices
             df_total = pd.concat(copy.deepcopy(data), axis=1)
-            return {c: df_total.loc[:, c]
-                    for c in set(df_total.columns.get_level_values(0))}
+            columns = list(data.keys())
+            return {c: df_total.T.loc[c, :].T for c in columns}
 
-    def __process_list(self, data):
+    def __process_list(self, data): 
         """
             Format list to valid type.
         """
@@ -106,7 +105,7 @@ class Formatter():
                 result = [df.set_index('date') for df in result]
             n = len(result[0])
             # if not all([len(df) == n for df in result]):
-            result = self.__reformat_x_list(result)
+            result = self.reformat_x_list(result)
             return result
         # data is list of np.ndarray
         elif all([isinstance(d, np.ndarray) for d in data]):
@@ -124,7 +123,7 @@ class Formatter():
                         for d in data]), (
                 "All indices in a list of pd.Series or pd.DataFrames " +
                 "should have the same type.")
-            result = self.__reformat_x_list(data)
+            result = self.reformat_x_list(data)
             return result
         else:
             raise(TypeError("Data is not valid. " +
@@ -132,20 +131,21 @@ class Formatter():
                             " dicts, pd.Series or pd.DataFrame. " +
                             "Found : %s" % [type(d) for d in data]))
 
-    def __process_dict(self, data):
+    def __process_dict(self, _data):
         """
             Format dictionary to valid type.
         """
+        data = copy.deepcopy(_data)
         self.names = list(data.keys())
         # dict of dicts
-        if all([isinstance(d, dict) for k, d in list(data.items())]):
+        if all([isinstance(d, dict) for d in list(data.values())]):
             result = {k: pd.DataFrame.from_dict(
                 d) for k, d in list(data.items())}
             # Has 'date' as a column -> format to common date
             if all(['date' in v for k, v in result.items()]):
                 result = {k: df.set_index('date')
                           for k, df in list(result.items())}
-            result = self.__reformat_x_dict(result)
+            result = self.reformat_x_dict(result)
             return list(result.values())
         # data is list of np.ndarray
         elif all([isinstance(d, np.ndarray) for d in list(data.values())]):
@@ -162,15 +162,61 @@ class Formatter():
                         for d in list(data.values())]), (
                 "All indices in a dict of pd.Series or pd.DataFrames " +
                 "should have the same type.")
-            result = self.__reformat_x_dict(data)
+            result = self.reformat_x_dict(data)
             return list(result.values())
         else:
             raise(TypeError("Data is not valid. " +
                             "Found dict containing objects" +
-                            " of tpye %s." % [type(d) for d in data] +
+                            " of tpye %s." % [type(d) for d in list(data)] +
                             "Please convert to format" +
                             " \{'name': \{'date': ..., 'values': ...\}\}"
                             "or {'name': {'date': pd.DataFrame}."))
+
+    @staticmethod
+    def _get_x_y(data, column=None):
+        """
+            Get the x and y coordinates to be plotted in the line graph.
+
+        Params
+        ------
+        data: pd.Series, pd.DataFrame, dict, sequence
+            If dict: should contain the field 'date' in a datetime
+            format to be plotted. If not a numerical ordinal sequence
+            will be used.
+        column: str
+            Column or field from which select the timeseries. This is required
+            for pd.Series, pd.DataFrame, dict formats.
+
+        Returns
+        -------
+        x: sequence or array-like
+            Sequence with dates or numbers corresponding to the timeseries
+            steps.
+        y: sequence or array-like
+            Sequence with the time series to be plotted.
+
+        """
+        if isinstance(data, pd.Series):
+            return data.index.copy(), data.copy()
+        elif isinstance(data, (pd.DataFrame, dict)):
+            if column in data:
+                y = data[column]
+            else:
+                raise(ValueError("Selected column: '%s'" % column +
+                                 " not in 'data' variable of type" +
+                                 " %s." % type(data)))
+            if 'date' in data:
+                x = convert_to_datetime(data['date'])
+            else:
+                if hasattr(data, 'index'):
+                    x = data.index
+                else:
+                    x = np.arange(len(y))
+            return x, y
+        else:
+            y = data
+            x = np.arange(len(y))
+            return x, y
 
     def format_data(self, data):
         """
@@ -183,13 +229,34 @@ class Formatter():
         result = self._format(data)
         return result, self.names
 
-    def format_input_data(self, input_data):
+    def format_input_data(self, input_data, column='adj_close'):
         assert isinstance(input_data, (dict, list)), (
             "Data should be contained in 'dict' object or 'list'")
         if isinstance(input_data, list):
-            return {"plot_" + str(i): v for i, v in enumerate(input_data)}
+            result = {"plot_" + str(i): v for i, v in enumerate(input_data)}
         else:
-            return input_data
+            result = input_data
+
+        names = {}
+        dict_total = {}
+        _temp = {}
+        for j, (plot_title, data) in enumerate(result.items()):
+            _temp[plot_title], names[plot_title] = self.format_data(data)
+            dict_total[plot_title] = {}
+            for i, stock in enumerate(_temp[plot_title]):
+                _, y = self._get_x_y(stock, column)
+                dict_total[plot_title][names[plot_title][i]] = y
+        df_total = {k: pd.concat(l, axis=1)
+                    for k, l in list(dict_total.items())}
+        formatted_data = self.__process_dict(df_total)
+        _temp = {}
+        formatted_result = {}
+        for j, (plot_title, v) in enumerate(list(names.items())):
+            _temp[plot_title] = {}
+            for i, name in enumerate(v):
+                _temp[plot_title][name] = formatted_data[j][name]
+            formatted_result[plot_title] = list(_temp[plot_title].values())
+        return formatted_result, names
 
     @staticmethod
     def _get_input_params(i, data, plot_title, params, data_dim):
