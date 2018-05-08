@@ -89,7 +89,7 @@ class StocksDashboard():
         return hover
 
     @staticmethod
-    def _get_x_y(data, column):
+    def _get_x_y(data, column=None):
         """
             Get the x and y coordinates to be plotted in the line graph.
 
