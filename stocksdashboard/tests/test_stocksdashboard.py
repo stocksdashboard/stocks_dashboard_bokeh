@@ -211,10 +211,8 @@ def test_formatter_format_dict():
             for i in range(3)}
     result = Formatter()._format(data)
     _expected = pd.concat({k: pd.DataFrame.from_dict(d)
-                           for k, d in list(data.items())},
-                          axis=1)
-    expected = {c: _expected.loc[:, c]
-                for c in set(_expected.columns.get_level_values(0))}
+                           for k, d in list(data.items())}, axis=1, copy=True)
+    expected = {c: _expected.loc[:, c] for c in list(data.keys())}
     assert all([r.equals(e) for r, e in zip(result, list(expected.values()))])
 
     # Check dict of pd.DataFrame is valid
@@ -224,7 +222,7 @@ def test_formatter_format_dict():
     result = Formatter()._format(data)
     _expected = pd.concat(data, axis=1)
     expected = {c: _expected.loc[:, c]
-                for c in set(_expected.columns.get_level_values(0))}
+                for c in list(data.keys())}
     assert all([r.equals(e) for r, e in zip(result, list(expected.values()))])
 
     # Check dict of pd.Series is valid
@@ -234,13 +232,15 @@ def test_formatter_format_dict():
     result = Formatter()._format(data)
     _expected = pd.concat(data, axis=1)
     expected = {c: _expected.loc[:, c]
-                for c in set(_expected.columns.get_level_values(0))}
+                for c in list(data.keys())}
     assert all([r.equals(e) for r, e in zip(result, list(expected.values()))])
 
     # Check dict of numpy.array is valid
     data = {str(i): np.random.uniform(low=low, high=high, size=(size,))
             for i in range(3)}
-    assert Formatter()._format(data) == list(data.values())
+    assert all([np.array_equal(r, e)
+                for r, e in zip(Formatter()._format(data),
+                                list(data.values()))])
 
     # Check dict of strings is invalid
     data = {str(i): [random.choice(string.ascii_letters) for j in range(size)]
@@ -342,42 +342,78 @@ def test_formatter_format_dict_names():
 
 def test_formatter_format_input_data():
     # Test dict of dicts
-    data = {'plot_' + str(h): {str(i): {'col_' + str(j):
-                                        np.random.uniform(low=low,
-                                                          high=high,
-                                                          size=(size,))
+    arrays = [np.array(['1', '2', '3']),
+              np.array(['3', '4', '5']),
+              np.array(['6', '7', '8'])]
+    data = {'plot_' + str(h): {str(i): {'col_' + str(j): arrays[j]
                                         for j in range(3)}
                                for i in range(3)}
             for h in range(2)}
-    expected = data
-    result = Formatter().format_input_data(data)
-    assert result == expected
+    expected = {'plot_0': [pd.Series(arrays[1], name=str(i))
+                           for i in range(3)],
+                'plot_1': [pd.Series(arrays[1], name=str(i))
+                           for i in range(3)]}
+    expected_names = {'plot_0': ['0', '1', '2'], 'plot_1': ['0', '1', '2']}
+    result, names = Formatter().format_input_data(data, 'col_1')
+    assert all([r.equals(e)
+                for _r, _e in zip(result.values(), expected.values())
+                for r, e in zip(_r, _e)])
+    assert all([r == e
+                for _r, _e in zip(names.values(), expected_names.values())
+                for r, e in zip(_r, _e)])
+    assert all([r == e
+                for r, e in zip(names.keys(), expected_names.keys())])
+
+    size = [5, 10, 20]
+    data = {'plot_' + str(h): {str(i): {'col_' + str(j):
+                                        np.random.uniform(low=low,
+                                                          high=high,
+                                                          size=(size[j],))
+                                        for j in range(3)}
+                               for i in range(3)}
+            for h in range(2)}
+
+    with pytest.raises(ValueError) as excinfo:
+        result, names = Formatter().format_input_data(data, 'col_1')
+    error_msg = "arrays must all be same length"
+    assert(error_msg in str(excinfo))
 
     # Test list of dicts
-    data = [{str(i): {'col_' + str(j): np.random.uniform(low=low,
-                                                         high=high,
-                                                         size=(size,))
+    arrays = [np.array(['1', '2', '3']),
+              np.array(['3', '4', '5']),
+              np.array(['6', '7', '8'])]
+    data = [{str(i): {'col_' + str(j): arrays[j]
                       for j in range(3)}
-             }
-            for i in range(3)]
-    expected = {"plot_" + str(i): v for i, v in enumerate(data)}
-    result = Formatter().format_input_data(data)
-    assert result == expected
+             for i in range(3)}
+            for h in range(2)]
+    expected = {'plot_0': [pd.Series(arrays[1], name=str(i))
+                           for i in range(3)],
+                'plot_1': [pd.Series(arrays[1], name=str(i))
+                           for i in range(3)]}
+    expected_names = {'plot_0': ['0', '1', '2'], 'plot_1': ['0', '1', '2']}
+    result, names = Formatter().format_input_data(data, 'col_1')
+    assert all([r.equals(e)
+                for _r, _e in zip(result.values(), expected.values())
+                for r, e in zip(_r, _e)])
+    assert all([r == e
+                for _r, _e in zip(names.values(), expected_names.values())
+                for r, e in zip(_r, _e)])
+    assert all([r == e
+                for r, e in zip(names.keys(), expected_names.keys())])
 
 
 def test_formatter_format_param_dict():
     # Test passing input params
     # (as passed to StocksDashboard().build_dashboard()) in dict format.
 
-    data = {'plot_' + str(h): {str(i): {'col_' + str(j):
-                                        np.random.uniform(low=low,
-                                                          high=high,
-                                                          size=(size,))
+    arrays = [np.array(['1', '2', '3']),
+              np.array(['3', '4', '5']),
+              np.array(['6', '7', '8'])]
+    data = {'plot_' + str(h): {str(i): {'col_' + str(j): arrays[j]
                                         for j in range(3)}
                                for i in range(3)}
             for h in range(2)}
-
-    _data = Formatter().format_input_data(data)
+    _data, names = Formatter().format_input_data(data, 'col_1')
 
     # Test dicts of params with one setting per graph.
     params = {'plot_' + str(h): {str(i): {'col_' + str(j):
@@ -408,15 +444,14 @@ def test_formatter_format_param_dict():
 def test_formatter_format_param_list():
     # Test passing input params
     # (as passed to StocksDashboard().build_dashboard()) in list format.
-    data = {'plot_' + str(h): {str(i): {'col_' + str(j):
-                                        np.random.uniform(low=low,
-                                                          high=high,
-                                                          size=(size,))
-                                        for j in range(3)}
-                               for i in range(3)}
-            for h in range(2)}
-
-    _data = Formatter().format_input_data(data)
+    arrays = [np.array(['1', '2', '3']),
+              np.array(['3', '4', '5']),
+              np.array(['6', '7', '8'])]
+    data = [{str(i): {'col_' + str(j): arrays[j]
+                      for j in range(3)}
+             for i in range(3)}
+            for h in range(2)]
+    _data, names = Formatter().format_input_data(data, 'col_1')
 
     # Test list of params with one setting per graph.
     params = [{str(i): {'col_' + str(j):

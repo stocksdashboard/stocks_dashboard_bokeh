@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import copy
 
+
 class Formatter():
 
     """
@@ -91,9 +92,11 @@ class Formatter():
             # return each of the dataframes with the merged indices
             df_total = pd.concat(copy.deepcopy(data), axis=1)
             columns = list(data.keys())
-            return {c: df_total.T.loc[c, :].T for c in columns}
+            # columns_dict = {k: [k_ for k_ in list(v.columns)] for k,v in list(data.items())} 
+            # print(columns_dict)
+            return {c: df_total.loc[:, c] for c in columns}
 
-    def __process_list(self, data): 
+    def __process_list(self, data):
         """
             Format list to valid type.
         """
