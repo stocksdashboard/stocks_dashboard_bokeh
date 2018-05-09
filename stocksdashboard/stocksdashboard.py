@@ -14,6 +14,9 @@ import pandas as pd
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
+from bokeh.models import Range1d
+from bokeh.models import LinearAxis
+from bokeh.models import Axis
 from bokeh.core.properties import value
 import warnings
 import copy
@@ -88,8 +91,8 @@ class StocksDashboard():
         hover.mode = mode
         return hover
 
-    @staticmethod
-    def _update_params(params, kwargs={}, names=None):
+
+    def _update_params(self, params, kwargs={}, names=None, aligment={}):
         # TODO: remove kwargs parameter
         """
             Update the aesthetics for plotting. Combine params and kwargs.
@@ -102,6 +105,9 @@ class StocksDashboard():
                 Dict with general params for plotting.
             names: list or sequence of strings, default None
                 List of names to be plotted.
+            aligment: dict of strings
+                Contains the axis to be selected for the line. Values
+                for each dict can be: ('left', 'right', None).
 
             Returns
             -------
@@ -133,17 +139,27 @@ class StocksDashboard():
                 {}
         """
         if params or kwargs:
-            if not names or (names and not any([n in params for n in names])):
-                params.update(kwargs)
+            if (not names or
+                (names and not any([n in params for n in names])) and not
+                    aligment):
+                params.update(copy.deepcopy(kwargs))
             else:
                 for n in names:
                     if n in params:
-                        params[n].update(kwargs)
+                        params[n].update(copy.deepcopy(kwargs))
                     else:
-                        params[n] = kwargs
-            return params
+                        params[n] = copy.deepcopy(kwargs)
+            if aligment:
+                for n in names:
+                    if aligment[n] is 'right':
+                        params[n].update({'y_range_name': self.y_right_name})
         else:
-            return kwargs
+            if aligment:
+                params = {n: {'y_range_name': self.y_right_name}
+                          for n in names if aligment[n] is 'right'}
+            else:
+                params = copy.deepcopy(kwargs)
+        return params
 
     @staticmethod
     def _add_color_and_legend(params, legend='', color='black'):
@@ -171,9 +187,37 @@ class StocksDashboard():
             datasource.add(name='x', data=x)
         return datasource
 
+    def get_y_limits(self, data, aligment):
+        _min = None
+        _max = None
+        for i, (stockname, al) in enumerate(list(aligment.items())):
+            if al == 'right':
+                if _min:
+                    _min = min(_min, min(data[i]))
+                else:
+                    _min = min(data[i])
+                if _max:
+                    _max = max(_max, max(data[i]))
+                else:
+                    _max = max(data[i])
+        return _min, _max
+
+    def _right_limits(self, p, data, aligment, params):
+        try:
+            # checks if 'right' is in aligment or not
+            list(aligment.values()).index('right')
+            y_limits_right = self.get_y_limits(data, aligment)
+            print(y_limits_right)
+            self.y_right_name = 'y1'
+            p.extra_y_ranges = {self.y_right_name: Range1d(y_limits_right[0],
+                                                           y_limits_right[1])}
+        except:
+            pass
+
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
                     title="Stock Closing Prices", ylabel='Price',
-                    add_hover=True, params={}, **kwargs_to_bokeh):
+                    ylabel_right=None, add_hover=True,
+                    params={}, aligment={}, **kwargs_to_bokeh):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
@@ -181,10 +225,13 @@ class StocksDashboard():
             p.grid.grid_line_alpha = 0.3
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
+            p = self._right_limits(p, data, aligment, params)
+
         # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
         params = self._update_params(params=params, kwargs=kwargs_to_bokeh,
-                                     names=names)
+                                     names=names, aligment=aligment)
+
         p_to_hover = []
         __datasource = ColumnDataSource()
         for i, stock in enumerate(data):
@@ -209,26 +256,39 @@ class StocksDashboard():
                                                   self.mode,
                                                   renderers=p_to_hover)
             p.add_tools(hover)
+        try:
+            # checks if 'right' is in aligment or not
+            list(aligment.values()).index('right')
+            p.add_layout(LinearAxis(y_range_name=self.y_right_name,
+                              axis_label=ylabel_right), 'right')
+        except:
+            pass
         return p
 
     def build_dashboard(self,
                         input_data={},
+                        aligment={},
                         params={},
                         title="stocks.py example",
                         ylabel='Price', show=True,
+                        ylabel='Price', ylabel_right={},
+                        show=True,
                         column='adj_close',
                         **kwargs_to_bokeh):
         plots = []
         _data, _names = Formatter().format_input_data(input_data, column)
-        _params = Formatter().format_params(input_data, params)
-
+        _params = Formatter().format_params(_data, params, _names)
+        _aligment = Formatter().format_aligment(aligment, _names)
+        _y_label_right = Formatter().format_y_label_right(ylabel_right, _names)
         for i, (plot_title, data) in enumerate(_data.items()):
             plots.append(self._plot_stock(data=data,
                                           names=_names[plot_title],
                                           title=plot_title,
                                           params=_params[plot_title],
+                                          aligment=_aligment[plot_title],
                                           ylabel=ylabel,
-                                          **kwargs_to_bokeh))
+                                          ylabel_right=_y_label_right[plot_title],
+                                          ** kwargs_to_bokeh))
 
         layout = gridplot(plots,
                           plot_width=self.width,

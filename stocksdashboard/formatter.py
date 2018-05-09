@@ -91,7 +91,9 @@ class Formatter():
             # return each of the dataframes with the merged indices
             df_total = pd.concat(copy.deepcopy(data), axis=1)
             columns = list(data.keys())
-            return {c: df_total.T.loc[c, :].T for c in columns}
+            # columns_dict = {k: [k_ for k_ in list(v.columns)] for k,v in list(data.items())}
+            # print(columns_dict)
+            return {c: df_total.loc[:, c] for c in columns}
 
     def __process_list(self, data): 
         """
@@ -271,11 +273,45 @@ class Formatter():
             _params = copy.deepcopy(params[i])
         return _params
 
-    def format_params(self, input_data, params):
+    def format_params(self, input_data, params, names):
         if not isinstance(params, (dict, list)):
             raise(TypeError("'params' should be either 'dict' or 'list."))
         _params = {}
-        _params = {plot_title: self._get_input_params(i, data, plot_title,
-                                                      params, len(input_data))
-                   for i, (plot_title, data) in enumerate(input_data.items())}
+        _params = {plot_title: self._get_input_params(
+            i,
+            input_data[plot_title],
+            plot_title,
+            params, len(input_data))
+            for i, (plot_title, stocksnames) in enumerate(names.items())}
         return _params
+
+    def format_aligment(self, aligment, names):
+        """
+            Reviews input aligment setting to match the available 'names'
+            structure and in case there is no parameter, set the
+            stock to be at the left.
+        """
+        if not isinstance(aligment, (dict)):
+            raise(TypeError("'aligment' should be either 'dict' in the form" +
+                            "\{plot_title : \{stockname: 'left', ...\}\}"))
+        for plot_title, _names in list(names.items()):
+            if plot_title not in aligment:
+                aligment[plot_title] = {}
+            for stockname in _names:
+                try:
+                    if (not aligment[plot_title][stockname] or
+                        not aligment[plot_title][stockname]
+                            in ('left', 'right', None)):
+                        aligment[plot_title][stockname] = None
+                except:
+                    aligment[plot_title][stockname] = None
+        return aligment
+
+    def format_y_label_right(self, y_label_right, names):
+        if not isinstance(y_label_right, (dict)):
+            raise(TypeError("'ylabel_right' should be either 'dict'" +
+                            " in the form {plot_title : y_label_right}"))
+        for plot_title in list(names.keys()):
+            if plot_title not in y_label_right:
+                y_label_right[plot_title] = None
+        return y_label_right
