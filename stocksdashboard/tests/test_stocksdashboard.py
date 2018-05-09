@@ -354,7 +354,7 @@ def test_formatter_format_input_data():
                 'plot_1': [pd.Series(arrays[1], name=str(i))
                            for i in range(3)]}
     expected_names = {'plot_0': ['0', '1', '2'], 'plot_1': ['0', '1', '2']}
-    result, names = Formatter().format_input_data(data, 'col_1')
+    result, x_range, names = Formatter().format_input_data(data, 'col_1')
     assert all([r.equals(e)
                 for _r, _e in zip(result.values(), expected.values())
                 for r, e in zip(_r, _e)])
@@ -374,7 +374,7 @@ def test_formatter_format_input_data():
             for h in range(2)}
 
     with pytest.raises(ValueError) as excinfo:
-        result, names = Formatter().format_input_data(data, 'col_1')
+        result, x_range, names = Formatter().format_input_data(data, 'col_1')
     error_msg = "arrays must all be same length"
     assert(error_msg in str(excinfo))
 
@@ -391,7 +391,7 @@ def test_formatter_format_input_data():
                 'plot_1': [pd.Series(arrays[1], name=str(i))
                            for i in range(3)]}
     expected_names = {'plot_0': ['0', '1', '2'], 'plot_1': ['0', '1', '2']}
-    result, names = Formatter().format_input_data(data, 'col_1')
+    result, x_range, names = Formatter().format_input_data(data, 'col_1')
     assert all([r.equals(e)
                 for _r, _e in zip(result.values(), expected.values())
                 for r, e in zip(_r, _e)])
@@ -413,7 +413,7 @@ def test_formatter_format_param_dict():
                                         for j in range(3)}
                                for i in range(3)}
             for h in range(2)}
-    _data, names = Formatter().format_input_data(data, 'col_1')
+    _data, x_range, names = Formatter().format_input_data(data, 'col_1')
 
     # Test dicts of params with one setting per graph.
     params = {'plot_' + str(h): {str(i): {'col_' + str(j):
@@ -421,7 +421,7 @@ def test_formatter_format_param_dict():
                                           for j in range(3)}
                                  for i in range(3)}
               for h in range(2)}
-    _data, names = Formatter().format_input_data(data, 'col_1')
+    _data, x_range, names = Formatter().format_input_data(data, 'col_1')
 
     expected = {plot_title: copy.deepcopy(params[plot_title])
                 for i, (plot_title, data) in enumerate(_data.items())}
@@ -434,7 +434,7 @@ def test_formatter_format_param_dict():
                                           for j in range(3)}
                                  for i in range(3)}
               for h in range(1)}
-    _data, names = Formatter().format_input_data(data, 'col_1')
+    _data, x_range, names = Formatter().format_input_data(data, 'col_1')
     expected = {plot_title: copy.deepcopy(params[plot_title])
                 if plot_title in params else {}
                 for i, (plot_title, data) in enumerate(_data.items())}
@@ -453,7 +453,7 @@ def test_formatter_format_param_list():
                       for j in range(3)}
              for i in range(3)}
             for h in range(2)]
-    _data, names = Formatter().format_input_data(data, 'col_1')
+    _data, x_range, names = Formatter().format_input_data(data, 'col_1')
 
     # Test list of params with one setting per graph.
     params = [{str(i): {'col_' + str(j):
@@ -461,7 +461,7 @@ def test_formatter_format_param_list():
                         for j in range(3)}
                for i in range(3)}
               for h in range(2)]
-    _data, names = Formatter().format_input_data(data, 'col_1')
+    _data, x_range, names = Formatter().format_input_data(data, 'col_1')
     expected = {plot_title: copy.deepcopy(params[i])
                 for i, (plot_title, data) in enumerate(_data.items())}
     result = Formatter().format_params(_data, params, names)
@@ -475,7 +475,7 @@ def test_formatter_format_param_list():
                         for j in range(3)}
                for i in range(3)}
               for h in range(1)]  # 1 element vs 2 in data.
-    _data, names = Formatter().format_input_data(data, 'col_1')
+    _data, x_range, names = Formatter().format_input_data(data, 'col_1')
     with pytest.raises(AssertionError) as excinfo:
         Formatter().format_params(_data, params, names)
     msg = "If input data contains a list, 'params' should contain " + \

@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import copy
 
-
 class Formatter():
 
     """
@@ -96,7 +95,7 @@ class Formatter():
             # print(columns_dict)
             return {c: df_total.loc[:, c] for c in columns}
 
-    def __process_list(self, data):
+    def __process_list(self, data): 
         """
             Format list to valid type.
         """
@@ -251,6 +250,8 @@ class Formatter():
                 dict_total[plot_title][names[plot_title][i]] = y
         df_total = {k: pd.concat(l, axis=1)
                     for k, l in list(dict_total.items())}
+        # it's in __process_dict
+        x_range = pd.concat(copy.deepcopy(df_total), axis=1).index
         formatted_data = self.__process_dict(df_total)
         _temp = {}
         formatted_result = {}
@@ -259,7 +260,7 @@ class Formatter():
             for i, name in enumerate(v):
                 _temp[plot_title][name] = formatted_data[j][name]
             formatted_result[plot_title] = list(_temp[plot_title].values())
-        return formatted_result, names
+        return formatted_result, x_range, names
 
     @staticmethod
     def _get_input_params(i, data, plot_title, params, data_dim):

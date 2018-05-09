@@ -15,6 +15,8 @@ from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
 from bokeh.models import Range1d
+from bokeh.models import FactorRange
+
 from bokeh.models import LinearAxis
 from bokeh.models import Axis
 from bokeh.core.properties import value
@@ -223,6 +225,7 @@ class StocksDashboard():
             p = figure(x_axis_type="datetime", title=title,
                        sizing_mode='scale_both')
             p.grid.grid_line_alpha = 0.3
+            p.x_range = self.x_range
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
             p = self._right_limits(p, data, aligment, params)
@@ -260,7 +263,7 @@ class StocksDashboard():
             # checks if 'right' is in aligment or not
             list(aligment.values()).index('right')
             p.add_layout(LinearAxis(y_range_name=self.y_right_name,
-                              axis_label=ylabel_right), 'right')
+                                    axis_label=ylabel_right), 'right')
         except:
             pass
         return p
@@ -275,12 +278,13 @@ class StocksDashboard():
                         column='adj_close',
                         **kwargs_to_bokeh):
         plots = []
-        _data, _names = Formatter().format_input_data(input_data, column)
+        _data, x_range, _names = Formatter().format_input_data(input_data,
+                                                               column)
         _params = Formatter().format_params(_data, params, _names)
         _aligment = Formatter().format_aligment(aligment, _names)
         _y_label_right = Formatter().format_y_label_right(ylabel_right, _names)
-        print(_y_label_right)
 
+        self.x_range = Range1d(x_range[0],x_range[-1])
         for i, (plot_title, data) in enumerate(_data.items()):
             plots.append(self._plot_stock(data=data,
                                           names=_names[plot_title],
