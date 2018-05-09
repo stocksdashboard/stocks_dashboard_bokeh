@@ -100,18 +100,18 @@ def test_init_unexpected_attribute():
 def test_update_params():
     # Test combine params with kwargs
     expected = {'color': 'blue', 'line_style': 'dot', 'line_width': 1.5}
-    result = sdb._update_params(params={'line_style': 'dot',
-                                        'color': 'blue'},
-                                kwargs={'line_width': 1.5})
+    result = sdb()._update_params(params={'line_style': 'dot',
+                                          'color': 'blue'},
+                                  kwargs={'line_width': 1.5})
     assert result == expected
 
     # Test combine params with kwargs for different names.
     expected = {'AAPL': {'color': 'blue', 'line_width': 1.5},
                 'GOOGL': {'line_style': 'dot', 'line_width': 1.5}}
-    result = sdb._update_params(params={'GOOGL': {'line_style': 'dot'},
-                                        'AAPL': {'color': 'blue'}},
-                                kwargs={'line_width': 1.5},
-                                names=['GOOGL', 'AAPL'])
+    result = sdb()._update_params(params={'GOOGL': {'line_style': 'dot'},
+                                          'AAPL': {'color': 'blue'}},
+                                  kwargs={'line_width': 1.5},
+                                  names=['GOOGL', 'AAPL'])
     assert result == expected
 
 
@@ -421,10 +421,11 @@ def test_formatter_format_param_dict():
                                           for j in range(3)}
                                  for i in range(3)}
               for h in range(2)}
+    _data, names = Formatter().format_input_data(data, 'col_1')
 
     expected = {plot_title: copy.deepcopy(params[plot_title])
                 for i, (plot_title, data) in enumerate(_data.items())}
-    result = Formatter().format_params(_data, params)
+    result = Formatter().format_params(_data, params, names)
     assert result == expected
 
     # Test dicts where not all 'plots_' have params params.
@@ -433,11 +434,12 @@ def test_formatter_format_param_dict():
                                           for j in range(3)}
                                  for i in range(3)}
               for h in range(1)}
-
+    _data, names = Formatter().format_input_data(data, 'col_1')
     expected = {plot_title: copy.deepcopy(params[plot_title])
                 if plot_title in params else {}
                 for i, (plot_title, data) in enumerate(_data.items())}
-    result = Formatter().format_params(_data, params)
+
+    result = Formatter().format_params(_data, params, names)
     assert result == expected
 
 
@@ -459,10 +461,10 @@ def test_formatter_format_param_list():
                         for j in range(3)}
                for i in range(3)}
               for h in range(2)]
-
+    _data, names = Formatter().format_input_data(data, 'col_1')
     expected = {plot_title: copy.deepcopy(params[i])
                 for i, (plot_title, data) in enumerate(_data.items())}
-    result = Formatter().format_params(_data, params)
+    result = Formatter().format_params(_data, params, names)
     assert result == expected
 
     # Test list of params with less format elements than
@@ -473,9 +475,9 @@ def test_formatter_format_param_list():
                         for j in range(3)}
                for i in range(3)}
               for h in range(1)]  # 1 element vs 2 in data.
-    print(params)
+    _data, names = Formatter().format_input_data(data, 'col_1')
     with pytest.raises(AssertionError) as excinfo:
-        Formatter().format_params(_data, params)
+        Formatter().format_params(_data, params, names)
     msg = "If input data contains a list, 'params' should contain " + \
           "a list of parameters for each element."
     assert(msg in str(excinfo))
