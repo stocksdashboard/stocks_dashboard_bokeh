@@ -239,11 +239,14 @@ class StocksDashboard():
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
                     title="Stock Closing Prices", ylabel='Price',
                     ylabel_right=None, add_hover=True,
-                    params={}, aligment={}, **kwargs_to_bokeh):
+                    params={}, aligment={}, height=None, **kwargs_to_bokeh):
 
         if not p:
             p = figure(x_axis_type="datetime", title=title,
-                       sizing_mode='scale_both')
+                       sizing_mode='scale_both', plot_width=self.width)
+            if height:
+                p.plot_height = int(height * self.height)
+                # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
             p.x_range = self.x_range
             p.xaxis.axis_label = 'Date'
@@ -297,6 +300,7 @@ class StocksDashboard():
                         ylabel='Price', ylabel_right={},
                         show=True,
                         column='adj_close',
+                        height=[],
                         **kwargs_to_bokeh):
         plots = []
         _data, x_range, _names = Formatter().format_input_data(input_data,
@@ -307,19 +311,26 @@ class StocksDashboard():
                                                           ylabel, _names)
 
         self.x_range = Range1d(x_range[0], x_range[-1])
+        if not height:
+            height = [(1. / len(_data))] * len(_data)
+        else:
+            assert(sum(height)) == 1, (
+                "All heights should sum up to 1, " +
+                "found: %s, sum(height)=%s" % (height, sum(height)))
         for i, (plot_title, data) in enumerate(_data.items()):
-            plots.append(self._plot_stock(data=data,
-                                          names=_names[plot_title],
-                                          title=plot_title,
-                                          params=_params[plot_title],
-                                          aligment=_aligment[plot_title],
-                                          ylabel=ylabel,
-                                          ylabel_right=_y_label_right[plot_title],
-                                          ** kwargs_to_bokeh))
+            plots.append(self._plot_stock(
+                data=data,
+                names=_names[plot_title],
+                title=plot_title,
+                params=_params[plot_title],
+                aligment=_aligment[plot_title],
+                ylabel=ylabel,
+                ylabel_right=_y_label_right[plot_title],
+                height=height[i],
+                ** kwargs_to_bokeh))
 
         layout = gridplot(plots,
                           plot_width=self.width,
-                          plot_height=self.height,
                           ncols=self.ncols)
         self.layout = layout
         if show:
