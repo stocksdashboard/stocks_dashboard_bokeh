@@ -314,7 +314,11 @@ class StocksDashboard():
         if not height:
             height = [(1. / len(_data))] * len(_data)
         else:
-            assert(sum(height)) == 1, (
+            assert len(height) == len(_data), (
+                "Number of heights should be equal to the number of plots. " +
+                "expected: %s, " % len(_data) +
+                "found: %s, len(height)= %s. " % (height, len(height)))
+            assert sum(height) == 1, (
                 "All heights should sum up to 1, " +
                 "found: %s, sum(height)=%s" % (height, sum(height)))
         for i, (plot_title, data) in enumerate(_data.items()):
