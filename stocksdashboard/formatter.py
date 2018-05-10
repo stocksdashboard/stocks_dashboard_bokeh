@@ -305,6 +305,10 @@ class Formatter():
                         aligment[plot_title][stockname] = None
                 except:
                     aligment[plot_title][stockname] = None
+            # remove keys that are not present in data
+            for alig_name in list(aligment[plot_title].keys()):
+                if alig_name not in _names:
+                    del(aligment[plot_title][alig_name])
         return aligment
 
     def format_y_label_right(self, y_label_right, names):

@@ -208,7 +208,6 @@ class StocksDashboard():
             # checks if 'right' is in aligment or not
             list(aligment.values()).index('right')
             y_limits_right = self.get_y_limits(data, aligment)
-            print(y_limits_right)
             self.y_right_name = 'y1'
             p.extra_y_ranges = {self.y_right_name: Range1d(y_limits_right[0],
                                                            y_limits_right[1])}
