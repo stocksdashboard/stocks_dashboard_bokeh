@@ -145,14 +145,23 @@ class StocksDashboard():
                     aligment):
                 params.update(copy.deepcopy(kwargs))
             else:
-                for n in names:
+                _initial_params = {}
+                if params and not all([n in params for n in names]):
+                    # Params has parameters but not especific params per name.
+                    _initial_params = copy.deepcopy(kwargs)
+                    # Override kwargs with params for the plot
+                    _initial_params.update(copy.deepcopy(params))
+                    params = {}
+                else:
+                    _initial_params = copy.deepcopy(kwargs)
+
+                for i, n in enumerate(names):
                     if n in params:
-                        params[n].update(copy.deepcopy(kwargs))
+                        params[n].update(copy.deepcopy(_initial_params))
                     else:
-                        params[n] = copy.deepcopy(kwargs)
+                        params[n] = copy.deepcopy(_initial_params)
             if aligment:
                 # only with more than one element we need two axis.
-
                 # In the other case, we just move to right the main axis.
                 for n in names:
                     if aligment[n] is 'right':
