@@ -145,15 +145,28 @@ class StocksDashboard():
                     aligment):
                 params.update(copy.deepcopy(kwargs))
             else:
-                for n in names:
+                _initial_params = {}
+                if params and not all([n in params for n in names]):
+                    # Params has parameters but not especific params per name.
+                    _initial_params = copy.deepcopy(kwargs)
+                    # Override kwargs with params for the plot
+                    _initial_params.update(copy.deepcopy(params))
+                    params = {}
+                else:
+                    _initial_params = copy.deepcopy(kwargs)
+
+                for i, n in enumerate(names):
                     if n in params:
-                        params[n].update(copy.deepcopy(kwargs))
+                        params[n].update(copy.deepcopy(_initial_params))
                     else:
-                        params[n] = copy.deepcopy(kwargs)
+                        params[n] = copy.deepcopy(_initial_params)
             if aligment:
+                # only with more than one element we need two axis.
+                # In the other case, we just move to right the main axis.
                 for n in names:
                     if aligment[n] is 'right':
-                        params[n].update({'y_range_name': self.y_right_name})
+                        params[n].update(
+                            {'y_range_name': self.y_right_name})
         else:
             if aligment:
                 params = {n: {'y_range_name': self.y_right_name}
@@ -194,25 +207,32 @@ class StocksDashboard():
         for i, (stockname, al) in enumerate(list(aligment.items())):
             if al == 'right':
                 if _min:
-                    _min = min(_min, min(data[i]))
+                    _min = min(_min, np.nanmin(data[i]))
                 else:
-                    _min = min(data[i])
+                    _min = np.nanmin(data[i])
                 if _max:
-                    _max = max(_max, max(data[i]))
+                    _max = max(_max, np.nanmax(data[i]))
                 else:
-                    _max = max(data[i])
+                    _max = np.nanmax(data[i])
         return _min, _max
 
     def _right_limits(self, p, data, aligment, params):
+
         try:
             # checks if 'right' is in aligment or not
             list(aligment.values()).index('right')
+            if len(data) == 1:
+                # There is only one element
+                # and we want to align it to the right
+                p.yaxis.visible = False
             y_limits_right = self.get_y_limits(data, aligment)
-            print(y_limits_right)
             self.y_right_name = 'y1'
-            p.extra_y_ranges = {self.y_right_name: Range1d(y_limits_right[0],
-                                                           y_limits_right[1])}
-        except:
+            p.extra_y_ranges = {self.y_right_name:
+                                Range1d(y_limits_right[0],
+                                        y_limits_right[1])}
+
+        except Exception as excinfo:
+            # print(str(excinfo))
             pass
         return p
 
@@ -264,7 +284,8 @@ class StocksDashboard():
             list(aligment.values()).index('right')
             p.add_layout(LinearAxis(y_range_name=self.y_right_name,
                                     axis_label=ylabel_right), 'right')
-        except:
+        except Exception as e:
+            # warnings.warn(str(e))
             pass
         return p
 
@@ -282,9 +303,10 @@ class StocksDashboard():
                                                                column)
         _params = Formatter().format_params(_data, params, _names)
         _aligment = Formatter().format_aligment(aligment, _names)
-        _y_label_right = Formatter().format_y_label_right(ylabel_right, _names)
+        _y_label_right = Formatter().format_y_label_right(ylabel_right,
+                                                          ylabel, _names)
 
-        self.x_range = Range1d(x_range[0],x_range[-1])
+        self.x_range = Range1d(x_range[0], x_range[-1])
         for i, (plot_title, data) in enumerate(_data.items()):
             plots.append(self._plot_stock(data=data,
                                           names=_names[plot_title],
