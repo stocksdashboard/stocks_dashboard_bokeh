@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import copy
 
+
 class Formatter():
 
     """
@@ -77,8 +78,7 @@ class Formatter():
 
     def reformat_x_list(self, data):
         # if all are pd.DataFrame or pd.Series -> merge indices!!
-        if any([all([isinstance(d, data_type) for d in data])
-                for data_type in (pd.Series, pd.DataFrame)]):
+        if any([isinstance(d, (pd.Series, pd.DataFrame)) for d in data]):
             # return each of the dataframes with the merged indices
             return [s.to_frame()
                     for c, s in pd.concat(copy.deepcopy(data),
@@ -86,16 +86,14 @@ class Formatter():
 
     def reformat_x_dict(self, data):
         # if all are pd.DataFrame or pd.Series -> merge indices!!
-        if any([all([isinstance(d, data_type) for k, d in list(data.items())])
-                for data_type in (pd.Series, pd.DataFrame)]):
+        if any([isinstance(d, (pd.Series, pd.DataFrame))
+                for d in list(data.values())]):
             # return each of the dataframes with the merged indices
             df_total = pd.concat(copy.deepcopy(data), axis=1)
             columns = list(data.keys())
-            # columns_dict = {k: [k_ for k_ in list(v.columns)] for k,v in list(data.items())}
-            # print(columns_dict)
             return {c: df_total.loc[:, c] for c in columns}
 
-    def __process_list(self, data): 
+    def __process_list(self, data):
         """
             Format list to valid type.
         """
@@ -118,8 +116,7 @@ class Formatter():
                 "the same length")
             return result
         # data is list of pd.Series, pd.DataFrame[
-        elif any([all([isinstance(d, data_type) for d in data])
-                  for data_type in (pd.Series, pd.DataFrame)]):
+        elif any([isinstance(d, (pd.Series, pd.DataFrame)) for d in data]):
             # Check all index are same type
             assert all([isinstance(d.index, type(data[0].index))
                         for d in data]), (
@@ -158,12 +155,13 @@ class Formatter():
                 "the same length")
             return list(result.values())
         # dict of dataframes, pd.Series
-        elif any([all([isinstance(d, data_type) for d in list(data.values())])
-                  for data_type in (pd.Series, pd.DataFrame)]):
+        elif any([isinstance(d, (pd.Series, pd.DataFrame))
+                  for d in list(data.values())]):
             assert all([isinstance(d.index, type(list(data.values())[0].index))
                         for d in list(data.values())]), (
                 "All indices in a dict of pd.Series or pd.DataFrames " +
                 "should have the same type.")
+
             result = self.reformat_x_dict(data)
             return list(result.values())
         else:
