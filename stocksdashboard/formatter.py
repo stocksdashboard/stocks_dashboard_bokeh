@@ -311,11 +311,16 @@ class Formatter():
                     del(aligment[plot_title][alig_name])
         return aligment
 
-    def format_y_label_right(self, y_label_right, names):
+    def format_y_label_right(self, y_label_right, y_label, names):
         if not isinstance(y_label_right, (dict)):
             raise(TypeError("'ylabel_right' should be either 'dict'" +
                             " in the form {plot_title : y_label_right}"))
         for plot_title in list(names.keys()):
-            if plot_title not in y_label_right:
+            # if there is only one element in the plot (plot_title)
+            # and there is no label for it, copy left y_label
+            # in case there is need to alight to the right
+            if len(names[plot_title]) == 1:
+                y_label_right[plot_title] = y_label
+            elif plot_title not in y_label_right:
                 y_label_right[plot_title] = None
         return y_label_right
