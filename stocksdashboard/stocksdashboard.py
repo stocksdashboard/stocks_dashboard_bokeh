@@ -15,10 +15,11 @@ from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
 from bokeh.models import Range1d
-from bokeh.models import FactorRange
+from bokeh.models.ranges import DataRange1d
 
 from bokeh.models import LinearAxis
 from bokeh.models import Axis
+from bokeh.models.glyphs import Line
 from bokeh.core.properties import value
 import warnings
 import copy
@@ -26,6 +27,7 @@ import copy
 from bokeh.models import HoverTool
 from bokeh.io import curdoc
 from bokeh.layouts import row, widgetbox
+import bokeh
 
 WIDTH = 1024
 HEIGHT = 648
@@ -184,12 +186,41 @@ class StocksDashboard():
             _params['color'] = color
         return _params
 
-    def _get_params(self, params, name, color):
+    @staticmethod
+    def __get_class_attr(params, class_object):
+        if not isinstance(class_object, (list, tuple)):
+            class_object = [class_object]
+        # return {k: v for k, v in list(copy.deepcopy(params).items())
+        #         if any([hasattr(c, k) for c in class_object])}
+        result = {}
+        for k, v in list(params.items()):
+            if any([hasattr(c, k) for c in class_object]):
+                result[k] = v
+        return result
+
+    def __get_kwargs_to_figure(self, _params):
+        """
+            From the input parameter for the current plot,
+            select the ones that are properties of Figure
+            and remove them from 'params' so the rest available
+            are just params for Line.
+        """
+        params = copy.deepcopy(_params)
+        kwargs_to_figure = self.__get_class_attr(params,
+                                                 bokeh.plotting.figure())
+        for k, v in list(params.items()):
+            del(params[k])
+        return kwargs_to_figure, params
+
+    def _get_params(self, params, name, color,
+                    class_object=[bokeh.models.glyphs.Line,
+                                  bokeh.core.property_mixins.ScalarLineProps]):
         """ Try to find specific parameters for a given name."""
         try:
-            return self._add_color_and_legend(params[name], name, color)
+            _params = self._add_color_and_legend(params[name], name, color)
         except (TypeError, KeyError):
-            return self._add_color_and_legend(params, name, color)
+            _params = self._add_color_and_legend(params, name, color)
+        return _params
 
     def __update_datasource(self, datasource, stock, column, name):
         """
@@ -242,8 +273,10 @@ class StocksDashboard():
                     params={}, aligment={}, height=None, **kwargs_to_bokeh):
 
         if not p:
+            kwargs_to_figure, params = self.__get_kwargs_to_figure(params)
             p = figure(x_axis_type="datetime", title=title,
-                       sizing_mode='scale_both', plot_width=self.width)
+                       sizing_mode='scale_both', plot_width=self.width,
+                       **kwargs_to_figure)
             if height:
                 p.plot_height = int(height * self.height)
                 # print(int(height*self.height))
@@ -260,6 +293,7 @@ class StocksDashboard():
 
         p_to_hover = []
         __datasource = ColumnDataSource()
+        # print(params)
         for i, stock in enumerate(data):
             __datasource = self.__update_datasource(__datasource, stock,
                                                     column, names[i])
