@@ -251,13 +251,13 @@ class Formatter():
         # it's in __process_dict
         x_range = pd.concat(copy.deepcopy(df_total), axis=1).index
         formatted_data = self.__process_dict(df_total)
-        _temp = {}
+
         formatted_result = {}
         for j, (plot_title, v) in enumerate(list(names.items())):
-            _temp[plot_title] = {}
+            _temp = {}
             for i, name in enumerate(v):
-                _temp[plot_title][name] = formatted_data[j][name]
-            formatted_result[plot_title] = list(_temp[plot_title].values())
+                _temp[name] = formatted_data[j][name]
+            formatted_result[plot_title] = list(_temp.values())
         return formatted_result, x_range, names
 
     @staticmethod
@@ -309,7 +309,15 @@ class Formatter():
             for alig_name in list(aligment[plot_title].keys()):
                 if alig_name not in _names:
                     del(aligment[plot_title][alig_name])
-        return aligment
+        # Order the dict to match the order in 'names'.
+        # The order in dictionary elements corresponds to the order
+        # of adding the element.
+        result = {}
+        for plot_title, _names in list(names.items()):
+            result[plot_title] = {}
+            for stockname in _names:
+                result[plot_title][stockname] = aligment[plot_title][stockname]
+        return result
 
     def format_y_label_right(self, y_label_right, y_label, names):
         if not isinstance(y_label_right, (dict)):

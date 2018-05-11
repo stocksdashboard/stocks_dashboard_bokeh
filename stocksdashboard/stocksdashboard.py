@@ -143,8 +143,8 @@ class StocksDashboard():
         """
         if params or kwargs:
             if (not names or
-                (names and not any([n in params for n in names])) and not
-                    aligment):
+                (names and not any([n in params for n in names]) and not
+                    aligment)):
                 params.update(copy.deepcopy(kwargs))
             else:
                 _initial_params = {}
@@ -152,7 +152,8 @@ class StocksDashboard():
                     # Params has parameters but not especific params per name.
                     _initial_params = copy.deepcopy(kwargs)
                     # Override kwargs with params for the plot
-                    _initial_params.update(copy.deepcopy(params))
+                    _initial_params.update(copy.deepcopy(
+                        {k: v for k, v in list(params.items()) if k not in names}))
                     params = {}
                 else:
                     _initial_params = copy.deepcopy(kwargs)
@@ -208,9 +209,18 @@ class StocksDashboard():
         params = copy.deepcopy(_params)
         kwargs_to_figure = self.__get_class_attr(params,
                                                  bokeh.plotting.figure())
-        for k, v in list(params.items()):
+        for k, v in list(kwargs_to_figure.items()):
             del(params[k])
         return kwargs_to_figure, params
+
+    @staticmethod
+    def __get_extra_y_ranges(kwargs_to_figure):
+        if 'extra_y_ranges' in kwargs_to_figure:
+            extra_y_ranges = kwargs_to_figure['extra_y_ranges']
+            del[kwargs_to_figure['extra_y_ranges']]
+        else:
+            extra_y_ranges = None
+        return kwargs_to_figure, extra_y_ranges
 
     def _get_params(self, params, name, color,
                     class_object=[bokeh.models.glyphs.Line,
@@ -247,7 +257,7 @@ class StocksDashboard():
                     _max = np.nanmax(data[i])
         return _min, _max
 
-    def _right_limits(self, p, data, aligment, params):
+    def _right_limits(self, p, data, aligment, extra_y_ranges=None):
 
         try:
             # checks if 'right' is in aligment or not
@@ -256,12 +266,15 @@ class StocksDashboard():
                 # There is only one element
                 # and we want to align it to the right
                 p.yaxis.visible = False
-            y_limits_right = self.get_y_limits(data, aligment)
             self.y_right_name = 'y1'
-            p.extra_y_ranges = {self.y_right_name:
-                                Range1d(y_limits_right[0],
-                                        y_limits_right[1])}
-
+            if not extra_y_ranges:
+                y_limits_right = self.get_y_limits(data, aligment)
+                p.extra_y_ranges = {self.y_right_name:
+                                    Range1d(y_limits_right[0],
+                                            y_limits_right[1])}
+            else:
+                p.extra_y_ranges = {
+                    self.y_right_name: extra_y_ranges}
         except Exception as excinfo:
             # print(str(excinfo))
             pass
@@ -271,9 +284,10 @@ class StocksDashboard():
                     title="Stock Closing Prices", ylabel='Price',
                     ylabel_right=None, add_hover=True,
                     params={}, aligment={}, height=None, **kwargs_to_bokeh):
-
         if not p:
             kwargs_to_figure, params = self.__get_kwargs_to_figure(params)
+            (kwargs_to_figure,
+             extra_y_ranges) = self.__get_extra_y_ranges(kwargs_to_figure)
             p = figure(x_axis_type="datetime", title=title,
                        sizing_mode='scale_both', plot_width=self.width,
                        **kwargs_to_figure)
@@ -284,7 +298,7 @@ class StocksDashboard():
             p.x_range = self.x_range
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
-            p = self._right_limits(p, data, aligment, params)
+            p = self._right_limits(p, data, aligment, extra_y_ranges)
 
         # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
@@ -293,7 +307,6 @@ class StocksDashboard():
 
         p_to_hover = []
         __datasource = ColumnDataSource()
-        # print(params)
         for i, stock in enumerate(data):
             __datasource = self.__update_datasource(__datasource, stock,
                                                     column, names[i])
