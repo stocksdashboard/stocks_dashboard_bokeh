@@ -290,15 +290,29 @@ class StocksDashboard():
         # Extract Figure attr from the particular params for the plot.
         (kwargs_to_figure,
             params) = self.__get_kwargs_to_figure(params)
+
         # Extract right limits in case there are limits for the right plot
         (kwargs_to_figure,
          extra_y_ranges) = self.__get_ranges(kwargs_to_figure,
                                              'extra_y_ranges')
         kwargs_to_figure.update(kwargs_to_figure_general)
+
+        # y_axis label is not detected as element of class Figure
+        # Remove manually if still in params
+        # https://bokeh.pydata.org/en/latest/docs/reference/plotting.html
+        if 'y_axis_label' in params:
+            kwargs_to_figure['y_axis_label'] = copy.deepcopy(
+                params['y_axis_label'])
+            del(kwargs_to_bokeh['y_axis_label'])
+            del(params['y_axis_label'])
+        if 'y_axis_label' in kwargs_to_bokeh:
+            kwargs_to_figure['y_axis_label'] = copy.deepcopy(
+                kwargs_to_bokeh['y_axis_label'])
+            del(kwargs_to_bokeh['y_axis_label'])
         return params, kwargs_to_bokeh, kwargs_to_figure, extra_y_ranges
 
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
-                    title="Stock Closing Prices", ylabel='Price',
+                    title="Stock Closing Prices",
                     ylabel_right=None, add_hover=True,
                     params={}, aligment={}, height=None, **kwargs_to_bokeh):
         if not p:
@@ -307,6 +321,8 @@ class StocksDashboard():
              kwargs_to_figure,
              extra_y_ranges) = self.separate_Figure_and_Line_params(
                 params, kwargs_to_bokeh)
+            # print(kwargs_to_figure)
+            # print(params)
             p = figure(x_axis_type="datetime", title=title,
                        sizing_mode='scale_both', plot_width=self.width,
                        **kwargs_to_figure)
@@ -315,7 +331,6 @@ class StocksDashboard():
                 # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
             p.xaxis.axis_label = 'Date'
-            p.yaxis.axis_label = ylabel
             p = self._right_limits(p, data, aligment, extra_y_ranges)
 
         # data, names = Formatter().format_data(input_data)
@@ -374,6 +389,7 @@ class StocksDashboard():
         _aligment = Formatter().format_aligment(aligment, _names)
         _y_label_right = Formatter().format_y_label_right(ylabel_right,
                                                           ylabel, _names)
+        kwargs_to_bokeh['y_axis_label'] = ylabel
         if 'x_range' not in kwargs_to_bokeh:
             kwargs_to_bokeh['x_range'] = Range1d(x_range[0], x_range[-1])
         if not height:
@@ -393,7 +409,6 @@ class StocksDashboard():
                 title=plot_title,
                 params=_params[plot_title],
                 aligment=_aligment[plot_title],
-                ylabel=ylabel,
                 ylabel_right=_y_label_right[plot_title],
                 height=height[i],
                 ** kwargs_to_bokeh))
