@@ -153,7 +153,8 @@ class StocksDashboard():
                     _initial_params = copy.deepcopy(kwargs)
                     # Override kwargs with params for the plot
                     _initial_params.update(copy.deepcopy(
-                        {k: v for k, v in list(params.items()) if k not in names}))
+                        {k: v for k, v in list(params.items())
+                         if k not in names}))
                     params = {}
                 else:
                     _initial_params = copy.deepcopy(kwargs)
@@ -213,14 +214,16 @@ class StocksDashboard():
             del(params[k])
         return kwargs_to_figure, params
 
-    @staticmethod
-    def __get_extra_y_ranges(kwargs_to_figure):
-        if 'extra_y_ranges' in kwargs_to_figure:
-            extra_y_ranges = kwargs_to_figure['extra_y_ranges']
-            del[kwargs_to_figure['extra_y_ranges']]
+    def __get_ranges(self, kwargs_to_figure, keyword='extra_y_ranges'):
+        if keyword in kwargs_to_figure:
+            value = kwargs_to_figure[keyword]
+            del[kwargs_to_figure[keyword]]
         else:
-            extra_y_ranges = None
-        return kwargs_to_figure, extra_y_ranges
+            if hasattr(self, keyword):
+                value = getattr(self, keyword)
+            else:
+                value = None
+        return kwargs_to_figure, value
 
     def _get_params(self, params, name, color,
                     class_object=[bokeh.models.glyphs.Line,
@@ -280,14 +283,30 @@ class StocksDashboard():
             pass
         return p
 
+    def separate_Figure_and_Line_params(self, params, kwargs_to_bokeh):
+        # Extract Figure attr from global settings dict kwargs_to_bokeh
+        (kwargs_to_figure_general,
+            kwargs_to_bokeh) = self.__get_kwargs_to_figure(kwargs_to_bokeh)
+        # Extract Figure attr from the particular params for the plot.
+        (kwargs_to_figure,
+            params) = self.__get_kwargs_to_figure(params)
+        # Extract right limits in case there are limits for the right plot
+        (kwargs_to_figure,
+         extra_y_ranges) = self.__get_ranges(kwargs_to_figure,
+                                             'extra_y_ranges')
+        kwargs_to_figure.update(kwargs_to_figure_general)
+        return params, kwargs_to_bokeh, kwargs_to_figure, extra_y_ranges
+
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
                     title="Stock Closing Prices", ylabel='Price',
                     ylabel_right=None, add_hover=True,
                     params={}, aligment={}, height=None, **kwargs_to_bokeh):
         if not p:
-            kwargs_to_figure, params = self.__get_kwargs_to_figure(params)
-            (kwargs_to_figure,
-             extra_y_ranges) = self.__get_extra_y_ranges(kwargs_to_figure)
+            (params,
+             kwargs_to_bokeh,
+             kwargs_to_figure,
+             extra_y_ranges) = self.separate_Figure_and_Line_params(
+                params, kwargs_to_bokeh)
             p = figure(x_axis_type="datetime", title=title,
                        sizing_mode='scale_both', plot_width=self.width,
                        **kwargs_to_figure)
@@ -295,7 +314,6 @@ class StocksDashboard():
                 p.plot_height = int(height * self.height)
                 # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
-            p.x_range = self.x_range
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
             p = self._right_limits(p, data, aligment, extra_y_ranges)
@@ -356,8 +374,8 @@ class StocksDashboard():
         _aligment = Formatter().format_aligment(aligment, _names)
         _y_label_right = Formatter().format_y_label_right(ylabel_right,
                                                           ylabel, _names)
-
-        self.x_range = Range1d(x_range[0], x_range[-1])
+        if 'x_range' not in kwargs_to_bokeh:
+            kwargs_to_bokeh['x_range'] = Range1d(x_range[0], x_range[-1])
         if not height:
             height = [(1. / len(_data))] * len(_data)
         else:
