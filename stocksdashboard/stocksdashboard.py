@@ -15,10 +15,11 @@ from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
 from bokeh.models import Range1d
-from bokeh.models import FactorRange
+from bokeh.models.ranges import DataRange1d
 
 from bokeh.models import LinearAxis
 from bokeh.models import Axis
+from bokeh.models.glyphs import Line
 from bokeh.core.properties import value
 import warnings
 import copy
@@ -26,6 +27,7 @@ import copy
 from bokeh.models import HoverTool
 from bokeh.io import curdoc
 from bokeh.layouts import row, widgetbox
+import bokeh
 
 WIDTH = 1024
 HEIGHT = 648
@@ -141,8 +143,8 @@ class StocksDashboard():
         """
         if params or kwargs:
             if (not names or
-                (names and not any([n in params for n in names])) and not
-                    aligment):
+                (names and not any([n in params for n in names]) and not
+                    aligment)):
                 params.update(copy.deepcopy(kwargs))
             else:
                 _initial_params = {}
@@ -150,7 +152,8 @@ class StocksDashboard():
                     # Params has parameters but not especific params per name.
                     _initial_params = copy.deepcopy(kwargs)
                     # Override kwargs with params for the plot
-                    _initial_params.update(copy.deepcopy(params))
+                    _initial_params.update(copy.deepcopy(
+                        {k: v for k, v in list(params.items()) if k not in names}))
                     params = {}
                 else:
                     _initial_params = copy.deepcopy(kwargs)
@@ -184,12 +187,50 @@ class StocksDashboard():
             _params['color'] = color
         return _params
 
-    def _get_params(self, params, name, color):
+    @staticmethod
+    def __get_class_attr(params, class_object):
+        if not isinstance(class_object, (list, tuple)):
+            class_object = [class_object]
+        # return {k: v for k, v in list(copy.deepcopy(params).items())
+        #         if any([hasattr(c, k) for c in class_object])}
+        result = {}
+        for k, v in list(params.items()):
+            if any([hasattr(c, k) for c in class_object]):
+                result[k] = v
+        return result
+
+    def __get_kwargs_to_figure(self, _params):
+        """
+            From the input parameter for the current plot,
+            select the ones that are properties of Figure
+            and remove them from 'params' so the rest available
+            are just params for Line.
+        """
+        params = copy.deepcopy(_params)
+        kwargs_to_figure = self.__get_class_attr(params,
+                                                 bokeh.plotting.figure())
+        for k, v in list(kwargs_to_figure.items()):
+            del(params[k])
+        return kwargs_to_figure, params
+
+    @staticmethod
+    def __get_extra_y_ranges(kwargs_to_figure):
+        if 'extra_y_ranges' in kwargs_to_figure:
+            extra_y_ranges = kwargs_to_figure['extra_y_ranges']
+            del[kwargs_to_figure['extra_y_ranges']]
+        else:
+            extra_y_ranges = None
+        return kwargs_to_figure, extra_y_ranges
+
+    def _get_params(self, params, name, color,
+                    class_object=[bokeh.models.glyphs.Line,
+                                  bokeh.core.property_mixins.ScalarLineProps]):
         """ Try to find specific parameters for a given name."""
         try:
-            return self._add_color_and_legend(params[name], name, color)
+            _params = self._add_color_and_legend(params[name], name, color)
         except (TypeError, KeyError):
-            return self._add_color_and_legend(params, name, color)
+            _params = self._add_color_and_legend(params, name, color)
+        return _params
 
     def __update_datasource(self, datasource, stock, column, name):
         """
@@ -216,7 +257,7 @@ class StocksDashboard():
                     _max = np.nanmax(data[i])
         return _min, _max
 
-    def _right_limits(self, p, data, aligment, params):
+    def _right_limits(self, p, data, aligment, extra_y_ranges=None):
 
         try:
             # checks if 'right' is in aligment or not
@@ -225,12 +266,15 @@ class StocksDashboard():
                 # There is only one element
                 # and we want to align it to the right
                 p.yaxis.visible = False
-            y_limits_right = self.get_y_limits(data, aligment)
             self.y_right_name = 'y1'
-            p.extra_y_ranges = {self.y_right_name:
-                                Range1d(y_limits_right[0],
-                                        y_limits_right[1])}
-
+            if not extra_y_ranges:
+                y_limits_right = self.get_y_limits(data, aligment)
+                p.extra_y_ranges = {self.y_right_name:
+                                    Range1d(y_limits_right[0],
+                                            y_limits_right[1])}
+            else:
+                p.extra_y_ranges = {
+                    self.y_right_name: extra_y_ranges}
         except Exception as excinfo:
             # print(str(excinfo))
             pass
@@ -239,16 +283,22 @@ class StocksDashboard():
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
                     title="Stock Closing Prices", ylabel='Price',
                     ylabel_right=None, add_hover=True,
-                    params={}, aligment={}, **kwargs_to_bokeh):
-
+                    params={}, aligment={}, height=None, **kwargs_to_bokeh):
         if not p:
+            kwargs_to_figure, params = self.__get_kwargs_to_figure(params)
+            (kwargs_to_figure,
+             extra_y_ranges) = self.__get_extra_y_ranges(kwargs_to_figure)
             p = figure(x_axis_type="datetime", title=title,
-                       sizing_mode='scale_both')
+                       sizing_mode='scale_both', plot_width=self.width,
+                       **kwargs_to_figure)
+            if height:
+                p.plot_height = int(height * self.height)
+                # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
             p.x_range = self.x_range
             p.xaxis.axis_label = 'Date'
             p.yaxis.axis_label = ylabel
-            p = self._right_limits(p, data, aligment, params)
+            p = self._right_limits(p, data, aligment, extra_y_ranges)
 
         # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
@@ -297,6 +347,7 @@ class StocksDashboard():
                         ylabel='Price', ylabel_right={},
                         show=True,
                         column='adj_close',
+                        height=[],
                         **kwargs_to_bokeh):
         plots = []
         _data, x_range, _names = Formatter().format_input_data(input_data,
@@ -307,19 +358,30 @@ class StocksDashboard():
                                                           ylabel, _names)
 
         self.x_range = Range1d(x_range[0], x_range[-1])
+        if not height:
+            height = [(1. / len(_data))] * len(_data)
+        else:
+            assert len(height) == len(_data), (
+                "Number of heights should be equal to the number of plots. " +
+                "expected: %s, " % len(_data) +
+                "found: %s, len(height)= %s. " % (height, len(height)))
+            assert sum(height) == 1, (
+                "All heights should sum up to 1, " +
+                "found: %s, sum(height)=%s" % (height, sum(height)))
         for i, (plot_title, data) in enumerate(_data.items()):
-            plots.append(self._plot_stock(data=data,
-                                          names=_names[plot_title],
-                                          title=plot_title,
-                                          params=_params[plot_title],
-                                          aligment=_aligment[plot_title],
-                                          ylabel=ylabel,
-                                          ylabel_right=_y_label_right[plot_title],
-                                          ** kwargs_to_bokeh))
+            plots.append(self._plot_stock(
+                data=data,
+                names=_names[plot_title],
+                title=plot_title,
+                params=_params[plot_title],
+                aligment=_aligment[plot_title],
+                ylabel=ylabel,
+                ylabel_right=_y_label_right[plot_title],
+                height=height[i],
+                ** kwargs_to_bokeh))
 
         layout = gridplot(plots,
                           plot_width=self.width,
-                          plot_height=self.height,
                           ncols=self.ncols)
         self.layout = layout
         if show:
