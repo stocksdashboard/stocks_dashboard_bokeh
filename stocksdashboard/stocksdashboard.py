@@ -258,11 +258,11 @@ class StocksDashboard():
             datasource.add(name='x', data=x)
         return datasource
 
-    def get_y_limits(self, data, aligment):
+    def get_y_limits(self, data, aligment, position='right'):
         _min = None
         _max = None
         for i, (stockname, al) in enumerate(list(aligment.items())):
-            if al == 'right':
+            if al == position:
                 if _min:
                     _min = min(_min, np.nanmin(data[i]))
                 else:
@@ -273,7 +273,7 @@ class StocksDashboard():
                     _max = np.nanmax(data[i])
         return _min, _max
 
-    def _right_limits(self, p, data, aligment, extra_y_ranges=None):
+    def set_limits(self, p, data, aligment, extra_y_ranges=None):
 
         try:
             # checks if 'right' is in aligment or not
@@ -284,16 +284,20 @@ class StocksDashboard():
                 p.yaxis.visible = False
             self.y_right_name = 'y1'
             if not extra_y_ranges:
-                y_limits_right = self.get_y_limits(data, aligment)
+                y_limits_right = self.get_y_limits(data, aligment, 'right')
                 p.extra_y_ranges = {self.y_right_name:
                                     Range1d(y_limits_right[0],
                                             y_limits_right[1])}
             else:
                 p.extra_y_ranges = {
                     self.y_right_name: extra_y_ranges}
+            # make sure that left limits are set to only signals in the left.
+            y_limits_left = self.get_y_limits(data, aligment, 'left')
+            p.xaxis.x_range = Range1d(y_limits_left[0], y_limits_left[1])
         except Exception as excinfo:
             # print(str(excinfo))
             pass
+
         return p
 
     def separate_Figure_and_Line_params(self, params, kwargs_to_bokeh):
@@ -332,7 +336,7 @@ class StocksDashboard():
                 # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
             p.xaxis.axis_label = 'Date'
-            p = self._right_limits(p, data, aligment, extra_y_ranges)
+            p = self.set_limits(p, data, aligment, extra_y_ranges)
 
         # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
