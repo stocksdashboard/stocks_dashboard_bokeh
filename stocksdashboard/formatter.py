@@ -6,6 +6,15 @@
 import numpy as np
 import pandas as pd
 import copy
+# try:
+#     from .stocksdashboard import convert_to_datetime
+# except Exception as excinfo:
+#     print(str(excinfo))
+#     from stocksdashboard import convert_to_datetime
+
+
+def convert_to_datetime(x):
+    return np.array(x, dtype=np.datetime64)
 
 
 class Formatter():
