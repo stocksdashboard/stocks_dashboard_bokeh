@@ -212,6 +212,19 @@ class StocksDashboard():
                                                  bokeh.plotting.figure())
         for k, v in list(kwargs_to_figure.items()):
             del(params[k])
+        # bokeh.plotting.figure(**kwargs) creates a Figure
+        # with the **kwargs but if not present,
+        # the aethetics are not passed to the FigureOptions class
+        # and hence they do not appear as element of the class.
+        # https://bokeh.pydata.org/en/latest/_modules/bokeh/plotting/figure.html#Figure
+        for k, v in list(params.items()):
+            try:
+                bokeh.plotting.figure(**{k: v})
+                kwargs_to_figure[k] = copy.deepcopy(v)
+                del(params[k])
+            except Exception as excinfo:
+                # print(str(excinfo))
+                pass
         return kwargs_to_figure, params
 
     def __get_ranges(self, kwargs_to_figure, keyword='extra_y_ranges'):
@@ -245,11 +258,11 @@ class StocksDashboard():
             datasource.add(name='x', data=x)
         return datasource
 
-    def get_y_limits(self, data, aligment):
+    def get_y_limits(self, data, aligment, position='right'):
         _min = None
         _max = None
         for i, (stockname, al) in enumerate(list(aligment.items())):
-            if al == 'right':
+            if al == position:
                 if _min:
                     _min = min(_min, np.nanmin(data[i]))
                 else:
@@ -260,7 +273,7 @@ class StocksDashboard():
                     _max = np.nanmax(data[i])
         return _min, _max
 
-    def _right_limits(self, p, data, aligment, extra_y_ranges=None):
+    def set_limits(self, p, data, aligment, extra_y_ranges=None):
 
         try:
             # checks if 'right' is in aligment or not
@@ -271,34 +284,42 @@ class StocksDashboard():
                 p.yaxis.visible = False
             self.y_right_name = 'y1'
             if not extra_y_ranges:
-                y_limits_right = self.get_y_limits(data, aligment)
+                y_limits_right = self.get_y_limits(data, aligment, 'right')
                 p.extra_y_ranges = {self.y_right_name:
                                     Range1d(y_limits_right[0],
                                             y_limits_right[1])}
             else:
                 p.extra_y_ranges = {
                     self.y_right_name: extra_y_ranges}
+            # make sure that left limits are set to only signals in the left.
+            y_limits_left = self.get_y_limits(data, aligment, 'left')
+            p.xaxis.x_range = Range1d(y_limits_left[0], y_limits_left[1])
         except Exception as excinfo:
             # print(str(excinfo))
             pass
+
         return p
 
     def separate_Figure_and_Line_params(self, params, kwargs_to_bokeh):
         # Extract Figure attr from global settings dict kwargs_to_bokeh
         (kwargs_to_figure_general,
             kwargs_to_bokeh) = self.__get_kwargs_to_figure(kwargs_to_bokeh)
+
         # Extract Figure attr from the particular params for the plot.
         (kwargs_to_figure,
             params) = self.__get_kwargs_to_figure(params)
+
         # Extract right limits in case there are limits for the right plot
         (kwargs_to_figure,
          extra_y_ranges) = self.__get_ranges(kwargs_to_figure,
                                              'extra_y_ranges')
-        kwargs_to_figure.update(kwargs_to_figure_general)
-        return params, kwargs_to_bokeh, kwargs_to_figure, extra_y_ranges
+        kwargs_to_figure_general.update(kwargs_to_figure)
+        _kwargs_to_figure = copy.deepcopy(kwargs_to_figure_general)
+
+        return params, kwargs_to_bokeh, _kwargs_to_figure, extra_y_ranges
 
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
-                    title="Stock Closing Prices", ylabel='Price',
+                    title="Stock Closing Prices",
                     ylabel_right=None, add_hover=True,
                     params={}, aligment={}, height=None, **kwargs_to_bokeh):
         if not p:
@@ -315,8 +336,7 @@ class StocksDashboard():
                 # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
             p.xaxis.axis_label = 'Date'
-            p.yaxis.axis_label = ylabel
-            p = self._right_limits(p, data, aligment, extra_y_ranges)
+            p = self.set_limits(p, data, aligment, extra_y_ranges)
 
         # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
@@ -339,6 +359,7 @@ class StocksDashboard():
 
         assert(len(p_to_hover) == len(data)), "Number of Lines " + \
                                               "don't match data dimension."
+        p.legend.orientation = "horizontal"
         p.legend.location = "top_left"
         p.legend.click_policy = "hide"
         if add_hover:
@@ -374,6 +395,7 @@ class StocksDashboard():
         _aligment = Formatter().format_aligment(aligment, _names)
         _y_label_right = Formatter().format_y_label_right(ylabel_right,
                                                           ylabel, _names)
+        kwargs_to_bokeh['y_axis_label'] = ylabel
         if 'x_range' not in kwargs_to_bokeh:
             kwargs_to_bokeh['x_range'] = Range1d(x_range[0], x_range[-1])
         if not height:
@@ -393,7 +415,6 @@ class StocksDashboard():
                 title=plot_title,
                 params=_params[plot_title],
                 aligment=_aligment[plot_title],
-                ylabel=ylabel,
                 ylabel_right=_y_label_right[plot_title],
                 height=height[i],
                 ** kwargs_to_bokeh))
