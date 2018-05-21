@@ -11,6 +11,8 @@ except Exception as excinfo:
 
 import numpy as np
 import pandas as pd
+import datetime
+
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
@@ -35,6 +37,12 @@ HEIGHT = 648
 
 def convert_to_datetime(x):
     return np.array(x, dtype=np.datetime64)
+
+
+def Range1d_to_DatetimeIndex(ix_values):
+    return pd.DatetimeIndex(
+        [datetime.datetime.fromtimestamp(d)
+         for d in ix_values / 1000]).date
 
 
 def get_colors(number_of_colors, palette_name='Category20'):
@@ -260,23 +268,25 @@ class StocksDashboard():
             datasource.add(name='x', data=x)
         return datasource
 
-    def get_y_limits(self, data, aligment, position='right'):
+    def get_y_limits(self, data, aligment, position='right', x_range=None):
+        ix_range = pd.date_range(x_range.start, x_range.end)
         _min = None
         _max = None
         for i, (stockname, al) in enumerate(list(aligment.items())):
             if al == position:
+                _data = data[i][ix_range]
                 if _min:
-                    _min = min(_min, np.nanmin(data[i]))
+                    _min = min(_min, np.nanmin(_data))
                 else:
-                    _min = np.nanmin(data[i])
+                    _min = np.nanmin(_data)
                 if _max:
-                    _max = max(_max, np.nanmax(data[i]))
+                    _max = max(_max, np.nanmax(_data))
                 else:
-                    _max = np.nanmax(data[i])
+                    _max = np.nanmax(_data)
         return _min, _max
 
-    def set_limits(self, p, data, aligment, extra_y_ranges=None):
-
+    def set_limits(self, p, data, aligment, extra_y_ranges=None,
+                   x_range=None, y_range_in_params=False):
         try:
             # checks if 'right' is in aligment or not
             list(aligment.values()).index('right')
@@ -286,20 +296,26 @@ class StocksDashboard():
                 p.yaxis.visible = False
             self.y_right_name = 'y1'
             if not extra_y_ranges:
-                y_limits_right = self.get_y_limits(data, aligment, 'right')
+                y_limits_right = self.get_y_limits(data, aligment, 'right',
+                                                   x_range)
                 p.extra_y_ranges = {self.y_right_name:
                                     Range1d(y_limits_right[0],
                                             y_limits_right[1])}
             else:
                 p.extra_y_ranges = {
                     self.y_right_name: extra_y_ranges}
-            # make sure that left limits are set to only signals in the left.
-            y_limits_left = self.get_y_limits(data, aligment, 'left')
-            p.xaxis.x_range = Range1d(y_limits_left[0], y_limits_left[1])
         except Exception as excinfo:
             # print(str(excinfo))
             pass
 
+        if not y_range_in_params:
+            # make sure that left limits are set to only signals in the left.
+            y_limits_left = self.get_y_limits(data, aligment, 'left', x_range)
+            try:
+                p.yaxis.y_range = Range1d(y_limits_left[0], y_limits_left[1])
+            except Exception as excinfo:
+                # print(str(excinfo))
+                pass
         return p
 
     def separate_Figure_and_Line_params(self, params, kwargs_to_bokeh):
@@ -339,7 +355,9 @@ class StocksDashboard():
                 # print(int(height*self.height))
             p.grid.grid_line_alpha = 0.3
             p.xaxis.axis_label = 'Date'
-            p = self.set_limits(p, data, aligment, extra_y_ranges)
+            p = self.set_limits(
+                p, data, aligment, extra_y_ranges, kwargs_to_figure['x_range'],
+                y_range_in_params=('y_range' in kwargs_to_figure))
 
         # data, names = Formatter().format_data(input_data)
         colors = get_colors(len(data))
