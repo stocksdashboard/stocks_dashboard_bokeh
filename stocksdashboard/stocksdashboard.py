@@ -151,14 +151,14 @@ class StocksDashboard():
                 if params and not all([n in params for n in names]):
                     # Params has parameters but not especific params per name.
                     _initial_params = copy.deepcopy(kwargs)
-                    # Override kwargs with params for the plot
-                    _initial_params.update(copy.deepcopy(
-                        {k: v for k, v in list(params.items())
-                         if k not in names}))
-                    params = {}
+                    # delete global formatting from params
+                    for k, v in list(params.items()):
+                        if k not in names:
+                            # Override kwargs with params for the plot
+                            _initial_params.update(copy.deepcopy({k: v}))
+                            del(params[k])
                 else:
                     _initial_params = copy.deepcopy(kwargs)
-
                 for i, n in enumerate(names):
                     if n in params:
                         params[n].update(copy.deepcopy(_initial_params))
@@ -180,9 +180,9 @@ class StocksDashboard():
         return params
 
     @staticmethod
-    def _add_color_and_legend(params, legend='', color='black'):
+    def _add_color_and_legend(params, legend=False, color='black'):
         _params = copy.deepcopy(params)
-        if 'legend' not in _params:
+        if 'legend' not in _params or isinstance(_params['legend'], str):
             _params['legend'] = value(legend)
         if 'color' not in _params:
             _params['color'] = color
@@ -342,13 +342,13 @@ class StocksDashboard():
         colors = get_colors(len(data))
         params = self._update_params(params=params, kwargs=kwargs_to_bokeh,
                                      names=names, aligment=aligment)
-
         p_to_hover = []
         __datasource = ColumnDataSource()
         for i, stock in enumerate(data):
             __datasource = self.__update_datasource(__datasource, stock,
                                                     column, names[i])
             _params = self._get_params(params, names[i], colors[i])
+            print(names[i], _params)
             _p = p.line(x='x', y=names[i], source=__datasource, **_params)
             p_to_hover.append(_p)
 
@@ -359,7 +359,7 @@ class StocksDashboard():
 
         assert(len(p_to_hover) == len(data)), "Number of Lines " + \
                                               "don't match data dimension."
-        p.legend.orientation = "horizontal"
+        # p.legend.orientation = "horizontal"
         p.legend.location = "top_left"
         p.legend.click_policy = "hide"
         if add_hover:
