@@ -127,11 +127,11 @@ def test_add_color_and_legend_legend():
 
 
 def test_add_color_and_legend_color():
-    expected = {'color': 'blue', 'legend': value('')}
+    expected = {'color': 'blue', 'legend': {'value': False}}
     result = sdb._add_color_and_legend({}, color='blue')
     assert result == expected
 
-    expected = {'color': 'red', 'legend': value('')}
+    expected = {'color': 'red', 'legend': {'value': False}}
     result = sdb._add_color_and_legend({'color': 'red'}, color='blue')
     assert result == expected
 

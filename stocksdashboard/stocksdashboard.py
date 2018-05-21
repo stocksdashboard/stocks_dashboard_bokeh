@@ -182,8 +182,10 @@ class StocksDashboard():
     @staticmethod
     def _add_color_and_legend(params, legend=False, color='black'):
         _params = copy.deepcopy(params)
-        if 'legend' not in _params or isinstance(_params['legend'], str):
+        if 'legend' not in _params:
             _params['legend'] = value(legend)
+        elif isinstance(_params['legend'], str):
+            _params['legend'] = value(copy.deepcopy(_params['legend']))
         if 'color' not in _params:
             _params['color'] = color
         return _params
@@ -321,7 +323,8 @@ class StocksDashboard():
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
                     title="Stock Closing Prices",
                     ylabel_right=None, add_hover=True,
-                    params={}, aligment={}, height=None, **kwargs_to_bokeh):
+                    params={}, aligment={}, height=None,
+                    verbose=False, **kwargs_to_bokeh):
         if not p:
             (params,
              kwargs_to_bokeh,
@@ -348,7 +351,8 @@ class StocksDashboard():
             __datasource = self.__update_datasource(__datasource, stock,
                                                     column, names[i])
             _params = self._get_params(params, names[i], colors[i])
-            print(names[i], _params)
+            if verbose:
+                print(names[i], _params)
             _p = p.line(x='x', y=names[i], source=__datasource, **_params)
             p_to_hover.append(_p)
 
