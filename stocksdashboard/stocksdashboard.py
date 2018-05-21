@@ -38,13 +38,6 @@ HEIGHT = 648
 def convert_to_datetime(x):
     return np.array(x, dtype=np.datetime64)
 
-
-def Range1d_to_DatetimeIndex(ix_values):
-    return pd.DatetimeIndex(
-        [datetime.datetime.fromtimestamp(d)
-         for d in ix_values / 1000]).date
-
-
 def get_colors(number_of_colors, palette_name='Category20'):
     from bokeh.palettes import all_palettes
     url_palettes = 'https://bokeh.pydata.org/en/' + \
@@ -132,21 +125,21 @@ class StocksDashboard():
             If params does not contains names:
                 - Combine them:
                 >>> import StocksDashboard as sdb
-                >>> sdb.update_params(params = {'line_style': 'dot',
+                >>> sdb._update_params(params = {'line_style': 'dot',
                 ...                             'color': 'blue'},
                 ...                   kwargs = {'line_width': 1.5})
                 {'color': 'blue', 'line_style': 'dot', 'line_width': 1.5}
             If params contains names:
                 - Update each dict:
-                >>> sdb.update_params(params = {'GOOGL': {'line_style': 'dot'},
-                ...                             'AAPL' :{'color': 'blue'}},
+                >>> sdb._update_params(params = {
+                ... 'GOOGL': {'line_style': 'dot'}, 'AAPL' :{'color': 'blue'}},
                 ...                   kwargs = {'line_width': 1.5},
                 ...                   names = ['GOOGL', 'AAPL'])
                 {'AAPL': {'color': 'blue', 'line_width': 1.5},
                 'GOOGL': {'line_style': 'dot', 'line_width': 1.5}}
             If both ``params`` and ``kwargs`` are empty, ``kwargs``
             is returned.
-                >>> sdb.update_params(params = {}, kwargs={})
+                >>> sdb._update_params(params = {}, kwargs={})
                 {}
         """
         if params or kwargs:
@@ -155,23 +148,22 @@ class StocksDashboard():
                     aligment)):
                 params.update(copy.deepcopy(kwargs))
             else:
-                _initial_params = {}
+                # Params has parameters but not especific params per name.
+                _initial_params = copy.deepcopy(kwargs)
                 if params and not all([n in params for n in names]):
-                    # Params has parameters but not especific params per name.
-                    _initial_params = copy.deepcopy(kwargs)
                     # delete global formatting from params
                     for k, v in list(params.items()):
                         if k not in names:
                             # Override kwargs with params for the plot
                             _initial_params.update(copy.deepcopy({k: v}))
                             del(params[k])
-                else:
-                    _initial_params = copy.deepcopy(kwargs)
                 for i, n in enumerate(names):
+                    temp_params = copy.deepcopy(_initial_params)
+                    # Particular parameters override general ones
                     if n in params:
-                        params[n].update(copy.deepcopy(_initial_params))
-                    else:
-                        params[n] = copy.deepcopy(_initial_params)
+                        temp_params.update(params[n])
+                    params[n] = copy.deepcopy(temp_params)
+
             if aligment:
                 # only with more than one element we need two axis.
                 # In the other case, we just move to right the main axis.

@@ -24,6 +24,7 @@ except Exception as excinfo:
     print(str(excinfo))
     from formatter import Formatter
 
+
 class DashboardWithWidgets:
     def __init__(self, sdb, sliders_params, signals_expressions):
         global _widget_type
@@ -94,8 +95,8 @@ class DashboardWithWidgets:
             expression_temp = self.update_expression(
                 data_temp,
                 expression_temp, 'data_temp',
-                ["(\w+)(?=\W+)", "(?<=\W)(\w+)(?=\W+)", "(?<=\()(\w+)(?=\))",
-                 "(?<==)(\w+)+(?=,)"])
+                ["(\w+)(?=\W+|$)", "(?<=\W)(\w+)(?=\W+|$)",
+                 "(?<=\()(\w+)(?=\))", "(?<==)(\w+)+(?=,)"])
             expression_temp = self.update_expression(
                 self.sliders,
                 expression_temp, 'self.sliders',
@@ -121,16 +122,18 @@ class DashboardWithWidgets:
                                      "If included use '\(' and '\)'." +
                                      "Found: %s" % name))
                 if len(__data_source.data[name]) > 1:
-                    data_temp[name] = pd.Series(__data_source.data[name],
-                                                index=__data_source.data['x'])
+                    data_temp[name] = pd.Series(
+                        copy.deepcopy(__data_source.data[name]),
+                        index=copy.deepcopy(__data_source.data['x']))
                 else:
-                    data_temp[name] = __data_source.data[name]
+                    data_temp[name] = copy.deepcopy(
+                        __data_source.data[name])
+
         if not hasattr(self, 'signal_expressions_formatted'):
             self._format_signal_expressions(data_temp)
         for signal_name, expr in list(self.signals_expressions.items()):
             result[signal_name] = eval(
                 self.signals_expressions_formatted[signal_name])
-
         for i, __data_source in enumerate(self.sdb.datasources):
             for name in result:
                 if name in __data_source.data:
