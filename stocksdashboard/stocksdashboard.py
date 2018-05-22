@@ -329,7 +329,6 @@ class StocksDashboard():
         return params, kwargs_to_bokeh, _kwargs_to_figure, extra_y_ranges
 
     def _plot_stock(self, data=None, names=None, p=None, column='adj_close',
-                    title="Stock Closing Prices",
                     ylabel_right=None, add_hover=True,
                     params={}, aligment={}, height=None,
                     verbose=False, **kwargs_to_bokeh):
@@ -339,8 +338,8 @@ class StocksDashboard():
              kwargs_to_figure,
              extra_y_ranges) = self.separate_Figure_and_Line_params(
                 params, kwargs_to_bokeh)
-            p = figure(x_axis_type="datetime", title=title,
-                       sizing_mode='scale_both', plot_width=self.width,
+            p = figure(x_axis_type="datetime", sizing_mode='scale_both',
+                       plot_width=self.width,
                        **kwargs_to_figure)
             if height:
                 p.plot_height = int(height * self.height)
@@ -396,7 +395,7 @@ class StocksDashboard():
                         input_data={},
                         aligment={},
                         params={},
-                        title="stocks.py example",
+                        title="Stock Closing Prices",
                         ylabel='Price', ylabel_right={},
                         show=True,
                         column='adj_close',

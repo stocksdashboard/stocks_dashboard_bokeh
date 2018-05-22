@@ -131,15 +131,21 @@ class DashboardWithWidgets:
 
         if not hasattr(self, 'signal_expressions_formatted'):
             self._format_signal_expressions(data_temp)
-        for signal_name, expr in list(self.signals_expressions.items()):
-            result[signal_name] = eval(
-                self.signals_expressions_formatted[signal_name])
+        # Run twice since some singals depends on others
+        for i in range(2):
+            for signal_name, expr in list(self.signals_expressions.items()):
+                result[signal_name] = eval(
+                    self.signals_expressions_formatted[signal_name])
+                # Update result in data_temp. If it is not dependent
+                # of other variable signal, this result won't change.
+                data_temp[signal_name] = result[signal_name]
+
         for i, __data_source in enumerate(self.sdb.datasources):
             for name in result:
                 if name in __data_source.data:
                     (__data_source.data['x'],
                      __data_source.data[name]
-                     ) = Formatter._get_x_y(result[name])
+                     ) = copy.deepcopy(Formatter._get_x_y(result[name]))
 
     def widget_on_change(self):
         list_of_widgets = list(self.sliders.values())
