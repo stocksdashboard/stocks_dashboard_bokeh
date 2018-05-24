@@ -113,6 +113,15 @@ class DashboardWithWidgets:
                     widgets_to_signals[s].add((signal_name))
                 else:
                     widgets_to_signals[s] = {signal_name}
+        # Iterate over all the replacements
+        for signal_name, replaced in list(signals_to_signals.items()):
+            # For each signal check all the variables
+            for r in replaced:
+                # if any of the variables is in a slider,
+                # then our variable is dependent of the slider.
+                for slider, l in list(widgets_to_signals.items()):
+                    if r in l:
+                        widgets_to_signals[slider].add(signal_name)
         self.signals_expressions_formatted = copy.deepcopy(
             signals_expressions_formatted)
         self.signals_to_signals = copy.deepcopy(signals_to_signals)
@@ -129,24 +138,28 @@ class DashboardWithWidgets:
         if hasattr(self, 'signals_to_signals'):
             selected_signals = set([
                 s for k in self.widgets_to_signals[widget_name]
-                for s in list(self.signals_to_signals[k])
-                if s not in self.widgets_to_signals[widget_name]])
+                for s in list(self.signals_to_signals[k])])
+            # if s not in self.widgets_to_signals[widget_name]])
             prev_selected = {}
             # Run until all dependent variables are tracked
             while prev_selected != selected_signals:
-                dependent_signals = set([_s
-                                         for s in selected_signals
-                                         if s in self.signals_to_signals
-                                         for _s in self.signals_to_signals[s]])
+                dependent_signals = set([
+                    _s for s in selected_signals
+                    if (s in self.signals_to_signals)
+                    # if (s in self.signals_to_signals and
+                    #     s not in self.widgets_to_signals[widget_name])
+                    for _s in self.signals_to_signals[s]])
                 prev_selected = copy.deepcopy(selected_signals)
                 selected_signals = selected_signals.union(
                     set(dependent_signals))
-
+            # print(widget_name, self.widgets_to_signals[widget_name],
+            #      selected_signals, )
+            selected_signals = selected_signals.union(
+                self.widgets_to_signals[widget_name])
             # avoid signals that
             # are in the expression signals
             # changed by the widget
             # print(widget_name, selected_signals)
-
         for k, v in list(self.sliders.items()):
             sliders_values[k] = v.value
 
@@ -174,14 +187,17 @@ class DashboardWithWidgets:
             self._format_signal_expressions(data_temp)
             signals = list(self.signals_expressions_formatted.keys())
         else:
-            signals = [s for s in self.widgets_to_signals[widget_name]]
-
-        for signal_name in signals:
-            result[signal_name] = eval(
-                self.signals_expressions_formatted[signal_name])
-            # Update result in data_temp. If it is not dependent
-            # of other variable signal, this result won't change.
-            data_temp[signal_name] = result[signal_name]
+            # signals = [s for s in self.widgets_to_signals[widget_name]]
+            signals = [s for s in selected_signals
+                       if s in list(self.signals_expressions_formatted.keys())]
+        # print(signals)
+        for i in range(2):
+            for signal_name in signals:
+                result[signal_name] = eval(
+                    self.signals_expressions_formatted[signal_name])
+                # Update result in data_temp. If it is not dependent
+                # of other variable signal, this result won't change.
+                data_temp[signal_name] = result[signal_name]
         for i, __data_source in enumerate(self.sdb.datasources):
             for name in result:
                 if name in __data_source.data:
