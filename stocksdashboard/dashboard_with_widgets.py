@@ -125,10 +125,23 @@ class DashboardWithWidgets:
         data_temp = {}
         result = {}
         selected_signals = None
+
         if hasattr(self, 'signals_to_signals'):
-            selected_signals = [s for k in self.widgets_to_signals[widget_name]
-                                for s in list(self.signals_to_signals[k])
-                                if s not in self.widgets_to_signals[widget_name]]
+            selected_signals = set([
+                s for k in self.widgets_to_signals[widget_name]
+                for s in list(self.signals_to_signals[k])
+                if s not in self.widgets_to_signals[widget_name]])
+            prev_selected = {}
+            # Run until all dependent variables are tracked
+            while prev_selected != selected_signals:
+                dependent_signals = set([_s
+                                         for s in selected_signals
+                                         if s in self.signals_to_signals
+                                         for _s in self.signals_to_signals[s]])
+                prev_selected = copy.deepcopy(selected_signals)
+                selected_signals = selected_signals.union(
+                    set(dependent_signals))
+
             # avoid signals that
             # are in the expression signals
             # changed by the widget
@@ -159,12 +172,11 @@ class DashboardWithWidgets:
                             __data_source.data[name])
         if not hasattr(self, 'signals_expressions_formatted'):
             self._format_signal_expressions(data_temp)
-            expressions = self.signals_expressions
+            signals = list(self.signals_expressions_formatted.keys())
         else:
-            expressions = {signal: self.signals_expressions[signal]
-                           for signal in self.widgets_to_signals[widget_name]}
+            signals = [s for s in self.widgets_to_signals[widget_name]]
 
-        for signal_name, expr in list(expressions.items()):
+        for signal_name in signals:
             result[signal_name] = eval(
                 self.signals_expressions_formatted[signal_name])
             # Update result in data_temp. If it is not dependent
