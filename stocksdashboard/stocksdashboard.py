@@ -28,23 +28,28 @@ import copy
 
 from bokeh.models import HoverTool
 from bokeh.io import curdoc
+from bokeh.palettes import all_palettes
 from bokeh.layouts import row, widgetbox
 import bokeh
 
 WIDTH = 1024
 HEIGHT = 648
+COLOR_WARNING = False
 
 
 def convert_to_datetime(x):
     return np.array(x, dtype=np.datetime64)
 
+
 def get_colors(number_of_colors, palette_name='Category20'):
-    from bokeh.palettes import all_palettes
-    url_palettes = 'https://bokeh.pydata.org/en/' + \
-                   'latest/docs/reference/palettes.html'
-    warnings.warn("""Using palette %s.
-        For other palettes visit:
-        %s""" % (palette_name, url_palettes))
+    global COLOR_WARNING
+    if not COLOR_WARNING:
+        url_palettes = 'https://bokeh.pydata.org/en/' + \
+                       'latest/docs/reference/palettes.html'
+        warnings.warn("""Using palette %s.
+            For other palettes visit:
+            %s""" % (palette_name, url_palettes))
+        COLOR_WARNING = True
     colors = all_palettes[palette_name][max(number_of_colors, 3)]
     return colors
 
