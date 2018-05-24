@@ -11,6 +11,7 @@ import re
 import copy
 import pandas as pd
 import numpy as np
+from functools import partial
 
 try:
     from ..stocksdashboard.stocksdashboard import StocksDashboard
@@ -115,7 +116,7 @@ class DashboardWithWidgets:
         self.widgets_to_signals = copy.deepcopy(widgets_to_signals)
         return signals_expressions_formatted, widgets_to_signals
 
-    def update_data(self, attrname, old, new):
+    def update_data(self, attrname, old, new, widget_name):
         print(attrname, old, new)
         sliders_values = {}
         data_temp = {}
@@ -163,4 +164,6 @@ class DashboardWithWidgets:
                 attribute_name = 'text'
             else:
                 attribute_name = 'value'
-            _widget.on_change(attribute_name, self.update_data)
+            # _widget.on_change(attribute_name, self.update_data)
+            _widget.on_change(attribute_name, partial(
+                self.update_data, widget=SelectorWidget))
