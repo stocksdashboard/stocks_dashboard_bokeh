@@ -78,17 +78,19 @@ class DashboardWithWidgets:
         replaced = set()
         for e in expr:
             for word in re.findall(e, expression_temp):
-                word_pattern = e.replace('\\w+', '\\b' + word)
-                word_replacement = "%s['%s']" % (dict_name, word)
-                if isinstance(var_dict[word], _widget_type):
-                    word_replacement = word_replacement + '.value'
-                expression_temp = re.sub(
-                    word_pattern, word_replacement, expression_temp)
-                replaced.add(word)
+                if word in list(var_dict.keys()) and word not in replaced:
+                    word_pattern = e.replace('\\w+', '\\b' + word)
+                    word_replacement = "%s['%s']" % (dict_name, word)
+                    if isinstance(var_dict[word], _widget_type):
+                        word_replacement = word_replacement + '.value'
+                    expression_temp = re.sub(
+                        word_pattern, word_replacement, expression_temp)
+                    replaced.add(word)
         return expression_temp, replaced
 
     def _format_signal_expressions(self, data_temp):
         signals_expressions_formatted = {}
+        widgets_to_signals = {}
         for signal_name, expr in list(self.signals_expressions.items()):
             expression_temp = copy.deepcopy(expr)
             expression_temp, replaced = self.update_expression(
@@ -100,15 +102,21 @@ class DashboardWithWidgets:
                 self.sliders,
                 expression_temp, 'self.sliders',
                 ["(\w+)(?=\W+)", "(?<=\()(\w+)(?=\))", "(?<==)(\w+)+(?=,)"])
-            print(replaced, sliders_replaced)
             signals_expressions_formatted[signal_name] = copy.deepcopy(
                 expression_temp)
+            # Save dict of widgets related to signals
+            for s in sliders_replaced:
+                if s in widgets_to_signals:
+                    widgets_to_signals[s].add(signal_name)
+                else:
+                    widgets_to_signals[s] = set(signal_name)
         self.signals_expressions_formatted = copy.deepcopy(
             signals_expressions_formatted)
-
-        return signals_expressions_formatted
+        self.widgets_to_signals = copy.deepcopy(widgets_to_signals)
+        return signals_expressions_formatted, widgets_to_signals
 
     def update_data(self, attrname, old, new):
+        print(attrname, old, new)
         sliders_values = {}
         data_temp = {}
         result = {}
