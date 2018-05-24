@@ -117,9 +117,6 @@ class DashboardWithWidgets:
         return signals_expressions_formatted, widgets_to_signals
 
     def update_data(self, attrname, old, new, widget_name):
-        print(widget_name, attrname, old, new)
-        if hasattr(self, 'widgets_to_signals'):
-            print(self.widgets_to_signals[widget_name])
         sliders_values = {}
         data_temp = {}
         result = {}
@@ -146,15 +143,6 @@ class DashboardWithWidgets:
         else:
             expressions = {s: self.signals_expressions[s]
                            for s in self.widgets_to_signals[widget_name]}
-            print(expressions)
-        # Run twice since some singals depends on others
-        # for i in range(2):
-        #     for signal_name, expr in list(self.signals_expressions.items()):
-        #         result[signal_name] = eval(
-        #             self.signals_expressions_formatted[signal_name])
-        #         # Update result in data_temp. If it is not dependent
-        #         # of other variable signal, this result won't change.
-        #         data_temp[signal_name] = result[signal_name]
 
         for signal_name, expr in list(expressions.items()):
             result[signal_name] = eval(
