@@ -92,6 +92,7 @@ class DashboardWithWidgets:
     def _format_signal_expressions(self, data_temp):
         signals_expressions_formatted = {}
         widgets_to_signals = {}
+        signals_to_signals = {}
         for signal_name, expr in list(self.signals_expressions.items()):
             expression_temp = copy.deepcopy(expr)
             expression_temp, replaced = self.update_expression(
@@ -105,6 +106,7 @@ class DashboardWithWidgets:
                 ["(\w+)(?=\W+)", "(?<=\()(\w+)(?=\))", "(?<==)(\w+)+(?=,)"])
             signals_expressions_formatted[signal_name] = copy.deepcopy(
                 expression_temp)
+            signals_to_signals[signal_name] = copy.deepcopy(replaced)
             # Save dict of widgets related to signals
             for s in sliders_replaced:
                 if s in widgets_to_signals:
@@ -113,36 +115,54 @@ class DashboardWithWidgets:
                     widgets_to_signals[s] = {signal_name}
         self.signals_expressions_formatted = copy.deepcopy(
             signals_expressions_formatted)
+        self.signals_to_signals = copy.deepcopy(signals_to_signals)
         self.widgets_to_signals = copy.deepcopy(widgets_to_signals)
-        return signals_expressions_formatted, widgets_to_signals
+        return (signals_expressions_formatted, widgets_to_signals,
+                signals_to_signals)
 
     def update_data(self, attrname, old, new, widget_name):
         sliders_values = {}
         data_temp = {}
         result = {}
+        selected_signals = None
+        if hasattr(self, 'signals_to_signals'):
+            selected_signals = [s for k in self.widgets_to_signals[widget_name]
+                                for s in list(self.signals_to_signals[k])
+                                if s not in self.widgets_to_signals[widget_name]]
+            # avoid signals that
+            # are in the expression signals
+            # changed by the widget
+            # print(widget_name, selected_signals)
+
         for k, v in list(self.sliders.items()):
             sliders_values[k] = v.value
+
         for i, __data_source in enumerate(self.sdb.datasources):
             for name in list(__data_source.data.keys()):
-                if re.findall("\(\w+\)", name):
-                    raise(ValueError("Variable should not contain " +
-                                     "plain parentheses. "
-                                     "If included use '\(' and '\)'." +
-                                     "Found: %s" % name))
-                if len(__data_source.data[name]) > 1:
-                    data_temp[name] = pd.Series(
-                        copy.deepcopy(__data_source.data[name]),
-                        index=copy.deepcopy(__data_source.data['x']))
-                else:
-                    data_temp[name] = copy.deepcopy(
-                        __data_source.data[name])
-
-        if not hasattr(self, 'signal_expressions_formatted'):
+                # Search for the signal just in case
+                # the process has not been done or
+                # or if the singal is one of the selected ones
+                # that are necessary for the signals changed by the widgets.
+                if (not hasattr(self, 'signals_to_signals') or
+                        (selected_signals and name in selected_signals)):
+                    if re.findall("\(\w+\)", name):
+                        raise(ValueError("Variable should not contain " +
+                                         "plain parentheses. "
+                                         "If included use '\(' and '\)'." +
+                                         "Found: %s" % name))
+                    if len(__data_source.data[name]) > 1:
+                        data_temp[name] = pd.Series(
+                            copy.deepcopy(__data_source.data[name]),
+                            index=copy.deepcopy(__data_source.data['x']))
+                    else:
+                        data_temp[name] = copy.deepcopy(
+                            __data_source.data[name])
+        if not hasattr(self, 'signals_expressions_formatted'):
             self._format_signal_expressions(data_temp)
             expressions = self.signals_expressions
         else:
-            expressions = {s: self.signals_expressions[s]
-                           for s in self.widgets_to_signals[widget_name]}
+            expressions = {signal: self.signals_expressions[signal]
+                           for signal in self.widgets_to_signals[widget_name]}
 
         for signal_name, expr in list(expressions.items()):
             result[signal_name] = eval(
