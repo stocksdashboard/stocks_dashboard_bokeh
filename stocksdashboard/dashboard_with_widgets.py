@@ -108,16 +108,18 @@ class DashboardWithWidgets:
             # Save dict of widgets related to signals
             for s in sliders_replaced:
                 if s in widgets_to_signals:
-                    widgets_to_signals[s].add(signal_name)
+                    widgets_to_signals[s].add((signal_name))
                 else:
-                    widgets_to_signals[s] = set(signal_name)
+                    widgets_to_signals[s] = {signal_name}
         self.signals_expressions_formatted = copy.deepcopy(
             signals_expressions_formatted)
         self.widgets_to_signals = copy.deepcopy(widgets_to_signals)
         return signals_expressions_formatted, widgets_to_signals
 
     def update_data(self, attrname, old, new, widget_name):
-        print(attrname, old, new)
+        print(widget_name, attrname, old, new)
+        if hasattr(self, 'widgets_to_signals'):
+            print(self.widgets_to_signals[widget_name])
         sliders_values = {}
         data_temp = {}
         result = {}
@@ -157,13 +159,11 @@ class DashboardWithWidgets:
                      ) = copy.deepcopy(Formatter._get_x_y(result[name]))
 
     def widget_on_change(self):
-        list_of_widgets = list(self.sliders.values())
-        for _widget in list_of_widgets:
-            # print(w)
+        for k, _widget in list(self.sliders.items()):
             if isinstance(_widget, PreText):
                 attribute_name = 'text'
             else:
                 attribute_name = 'value'
             # _widget.on_change(attribute_name, self.update_data)
             _widget.on_change(attribute_name, partial(
-                self.update_data, widget=SelectorWidget))
+                self.update_data, widget_name=k))
