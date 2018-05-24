@@ -78,29 +78,29 @@ class DashboardWithWidgets:
         replaced = set()
         for e in expr:
             for word in re.findall(e, expression_temp):
-                if word in list(var_dict.keys()) and word not in replaced:
-                    word_pattern = e.replace('\\w+', '\\b' + word)
-                    word_replacement = "%s['%s']" % (dict_name, word)
-                    if isinstance(var_dict[word], _widget_type):
-                        word_replacement = word_replacement + '.value'
-                    expression_temp = re.sub(
-                        word_pattern, word_replacement, expression_temp)
-                    replaced.add(word)
-        return expression_temp
+                word_pattern = e.replace('\\w+', '\\b' + word)
+                word_replacement = "%s['%s']" % (dict_name, word)
+                if isinstance(var_dict[word], _widget_type):
+                    word_replacement = word_replacement + '.value'
+                expression_temp = re.sub(
+                    word_pattern, word_replacement, expression_temp)
+                replaced.add(word)
+        return expression_temp, replaced
 
     def _format_signal_expressions(self, data_temp):
         signals_expressions_formatted = {}
         for signal_name, expr in list(self.signals_expressions.items()):
             expression_temp = copy.deepcopy(expr)
-            expression_temp = self.update_expression(
+            expression_temp, replaced = self.update_expression(
                 data_temp,
                 expression_temp, 'data_temp',
                 ["(\w+)(?=\W+|$)", "(?<=\W)(\w+)(?=\W+|$)",
                  "(?<=\()(\w+)(?=\))", "(?<==)(\w+)+(?=,)"])
-            expression_temp = self.update_expression(
+            expression_temp, sliders_replaced = self.update_expression(
                 self.sliders,
                 expression_temp, 'self.sliders',
                 ["(\w+)(?=\W+)", "(?<=\()(\w+)(?=\))", "(?<==)(\w+)+(?=,)"])
+            print(replaced, sliders_replaced)
             signals_expressions_formatted[signal_name] = copy.deepcopy(
                 expression_temp)
         self.signals_expressions_formatted = copy.deepcopy(
