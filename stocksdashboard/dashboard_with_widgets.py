@@ -202,14 +202,20 @@ class DashboardWithWidgets:
         if not hasattr(self, 'signals_expressions_formatted'):
             # the signals expressions have not been formatted yet.
             self._format_signal_expressions(data_temp)
-            signals = list(self.signals_expressions_formatted.keys())
+            signals = set(list(self.signals_expressions_formatted.keys()))
         else:
             # signals = [s for s in self.widgets_to_signals[widget_name]]
-            signals = [s for s in selected_signals
-                       if s in list(self.signals_expressions_formatted.keys())]
+            signals = set([
+                s for s in selected_signals
+                if s in list(self.signals_expressions_formatted.keys())])
         # print(signals)
-        for i in range(2):
-            for signal_name in signals:
+
+        # First get result of signals directly changed by the sliders
+        # and then change the signals dependent from the sliders
+        for _signals in [self.widgets_to_signals[widget_name],
+                         signals.difference(
+                         self.widgets_to_signals[widget_name])]:
+            for signal_name in _signals:
                 result[signal_name] = eval(
                     self.signals_expressions_formatted[signal_name])
                 # Update result in data_temp. If it is not dependent
