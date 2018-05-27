@@ -164,22 +164,14 @@ class DashboardWithWidgets:
         else:
             return None
 
-    def update_data(self, attrname, old, new, widget_name):
-        sliders_values = {}
+    def retrieve_variables_values(self, selected_signals):
         data_temp = {}
-        result = {}
-
-        selected_signals = self.get_selected_signals(widget_name)
-
-        for k, v in list(self.sliders.items()):
-            sliders_values[k] = v.value
-
         for i, __data_source in enumerate(self.sdb.datasources):
             for name in list(__data_source.data.keys()):
-                # Search for the signal just in case
-                # the process has not been done or
-                # or if the singal is one of the selected ones
-                # that are necessary for the signals changed by the widgets.
+                # Search for the signal just in case the process
+                # has not been done or if the singal is one of the selected
+                # ones that are necessary for the signals changed
+                # by the widgets.
                 if (not hasattr(self, 'signals_to_signals') or
                         (selected_signals and name in selected_signals)):
                     if re.findall("\(\w+\)", name):
@@ -194,7 +186,21 @@ class DashboardWithWidgets:
                     else:
                         data_temp[name] = copy.deepcopy(
                             __data_source.data[name])
+        return data_temp
+
+    def update_data(self, attrname, old, new, widget_name):
+        sliders_values = {}
+        result = {}
+
+        selected_signals = self.get_selected_signals(widget_name)
+
+        for k, v in list(self.sliders.items()):
+            sliders_values[k] = v.value
+
+        data_temp = self.retrieve_variables_values(selected_signals)
+
         if not hasattr(self, 'signals_expressions_formatted'):
+            # the signals expressions have not been formatted yet.
             self._format_signal_expressions(data_temp)
             signals = list(self.signals_expressions_formatted.keys())
         else:
