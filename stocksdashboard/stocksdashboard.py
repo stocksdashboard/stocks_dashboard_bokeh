@@ -43,7 +43,7 @@ def convert_to_datetime(x):
 
 def get_colors(number_of_colors, palette_name='Category20'):
     global COLOR_WARNING
-    if COLOR_WARNING:
+    if not COLOR_WARNING:
         url_palettes = 'https://bokeh.pydata.org/en/' + \
                        'latest/docs/reference/palettes.html'
         warnings.warn("""Using palette %s.
