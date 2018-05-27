@@ -129,12 +129,12 @@ class DashboardWithWidgets:
         return (signals_expressions_formatted, widgets_to_signals,
                 signals_to_signals)
 
-    def update_data(self, attrname, old, new, widget_name):
-        sliders_values = {}
-        data_temp = {}
-        result = {}
+    def get_selected_signals(self, widget_name):
+        """
+            Return the all the signals that are affected
+            by the changing widget.
+        """
         selected_signals = None
-
         if hasattr(self, 'signals_to_signals'):
             selected_signals = set([
                 s for k in self.widgets_to_signals[widget_name]
@@ -160,6 +160,17 @@ class DashboardWithWidgets:
             # are in the expression signals
             # changed by the widget
             # print(widget_name, selected_signals)
+            return selected_signals
+        else:
+            return None
+
+    def update_data(self, attrname, old, new, widget_name):
+        sliders_values = {}
+        data_temp = {}
+        result = {}
+
+        selected_signals = self.get_selected_signals(widget_name)
+
         for k, v in list(self.sliders.items()):
             sliders_values[k] = v.value
 
