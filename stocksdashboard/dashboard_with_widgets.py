@@ -188,14 +188,28 @@ class DashboardWithWidgets:
                             __data_source.data[name])
         return data_temp
 
+    def save_changes(self, result):
+        """
+            Save the evaluated expressions in 'result' to the datasources
+            in self.sdb.
+        """
+        for i, __data_source in enumerate(self.sdb.datasources):
+            for name in result:
+                if name in __data_source.data:
+                    (__data_source.data['x'],
+                     __data_source.data[name]
+                     ) = copy.deepcopy(Formatter._get_x_y(result[name]))
+
     def update_data(self, attrname, old, new, widget_name):
         result = {}
 
         # Get the signals affected by the slider
         selected_signals = self.get_selected_signals(widget_name)
 
+        # Retrieve current data values
         data_temp = self.retrieve_variables_values(selected_signals)
 
+        # Format data and retrieve the formatted expressions to evaluate
         if not hasattr(self, 'signals_expressions_formatted'):
             # the signals expressions have not been formatted yet.
             self._format_signal_expressions(data_temp)
@@ -205,7 +219,6 @@ class DashboardWithWidgets:
             signals = set([
                 s for s in selected_signals
                 if s in list(self.signals_expressions_formatted.keys())])
-        # print(signals)
 
         # (1) First get result of signals directly changed by the sliders and
         # (2) then change the signals dependent from the sliders
@@ -218,12 +231,9 @@ class DashboardWithWidgets:
                 # Update result in data_temp. If it is not dependent
                 # of other variable signal, this result won't change.
                 data_temp[signal_name] = result[signal_name]
-        for i, __data_source in enumerate(self.sdb.datasources):
-            for name in result:
-                if name in __data_source.data:
-                    (__data_source.data['x'],
-                     __data_source.data[name]
-                     ) = copy.deepcopy(Formatter._get_x_y(result[name]))
+
+        # Save results
+        self.save_changes(result)
 
     def widget_on_change(self):
         for k, _widget in list(self.sliders.items()):
