@@ -192,8 +192,10 @@ class DashboardWithWidgets:
         sliders_values = {}
         result = {}
 
+        # Get the signals affected by the slider
         selected_signals = self.get_selected_signals(widget_name)
 
+        # Update the values from the slider
         for k, v in list(self.sliders.items()):
             sliders_values[k] = v.value
 
@@ -210,8 +212,8 @@ class DashboardWithWidgets:
                 if s in list(self.signals_expressions_formatted.keys())])
         # print(signals)
 
-        # First get result of signals directly changed by the sliders
-        # and then change the signals dependent from the sliders
+        # (1) First get result of signals directly changed by the sliders and
+        # (2) then change the signals dependent from the sliders
         for _signals in [self.widgets_to_signals[widget_name],
                          signals.difference(
                          self.widgets_to_signals[widget_name])]:
