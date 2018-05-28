@@ -12,7 +12,6 @@ import copy
 #     print(str(excinfo))
 #     from stocksdashboard import convert_to_datetime
 
-
 def convert_to_datetime(x):
     return np.array(x, dtype=np.datetime64)
 
