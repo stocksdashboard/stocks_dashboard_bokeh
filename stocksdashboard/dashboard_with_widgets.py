@@ -189,15 +189,10 @@ class DashboardWithWidgets:
         return data_temp
 
     def update_data(self, attrname, old, new, widget_name):
-        sliders_values = {}
         result = {}
 
         # Get the signals affected by the slider
         selected_signals = self.get_selected_signals(widget_name)
-
-        # Update the values from the slider
-        for k, v in list(self.sliders.items()):
-            sliders_values[k] = v.value
 
         data_temp = self.retrieve_variables_values(selected_signals)
 
