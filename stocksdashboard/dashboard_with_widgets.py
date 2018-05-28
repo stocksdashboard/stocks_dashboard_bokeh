@@ -200,9 +200,24 @@ class DashboardWithWidgets:
                      __data_source.data[name]
                      ) = copy.deepcopy(Formatter._get_x_y(result[name]))
 
-    def update_data(self, attrname, old, new, widget_name):
+    def evaluate_signals(self, signals, data_temp, widget_name):
+        """
+        # (1) First get result of signals directly changed by the sliders and
+        # (2) then change the signals dependent from the sliders
+        """
         result = {}
+        for _signals in [self.widgets_to_signals[widget_name],
+                         signals.difference(
+                         self.widgets_to_signals[widget_name])]:
+            for signal_name in _signals:
+                result[signal_name] = eval(
+                    self.signals_expressions_formatted[signal_name])
+                # Update result in data_temp. If it is not dependent
+                # of other variable signal, this result won't change.
+                data_temp[signal_name] = result[signal_name]
+        return result, data_temp
 
+    def update_data(self, attrname, old, new, widget_name):
         # Get the signals affected by the slider
         selected_signals = self.get_selected_signals(widget_name)
 
@@ -215,23 +230,13 @@ class DashboardWithWidgets:
             self._format_signal_expressions(data_temp)
             signals = set(list(self.signals_expressions_formatted.keys()))
         else:
-            # signals = [s for s in self.widgets_to_signals[widget_name]]
             signals = set([
                 s for s in selected_signals
                 if s in list(self.signals_expressions_formatted.keys())])
 
-        # (1) First get result of signals directly changed by the sliders and
-        # (2) then change the signals dependent from the sliders
-        for _signals in [self.widgets_to_signals[widget_name],
-                         signals.difference(
-                         self.widgets_to_signals[widget_name])]:
-            for signal_name in _signals:
-                result[signal_name] = eval(
-                    self.signals_expressions_formatted[signal_name])
-                # Update result in data_temp. If it is not dependent
-                # of other variable signal, this result won't change.
-                data_temp[signal_name] = result[signal_name]
-
+        result, data_temp = self.evaluate_signals(signals,
+                                                  data_temp,
+                                                  widget_name)
         # Save results
         self.save_changes(result)
 
