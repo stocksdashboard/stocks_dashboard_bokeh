@@ -6,7 +6,10 @@
 To upload it to pypitest:
 >>> twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
->> pip install --index-url https://test.pypi.org/simple/ stocksdashboard
+>>> pip install --index-url https://test.pypi.org/simple/ stocksdashboard
+
+To upload to general repository:
+>>> twine upload  dist/*
 """
 import sys
 import os
