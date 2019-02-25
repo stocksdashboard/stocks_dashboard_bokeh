@@ -25,14 +25,6 @@ high = 100
 size = 50
 np.random.seed(42)
 
-data1 = {'A': np.random.uniform(low=low, high=high, size=(size,)),
-         'B': np.random.uniform(low=low, high=high, size=(size,)),
-         'C': np.random.uniform(low=low, high=high, size=(size,))}
-
-data2 = {'X': np.random.uniform(low=low, high=high, size=(size,)),
-         'Y': np.random.uniform(low=low, high=high, size=(size,)),
-         'Z': np.random.uniform(low=low, high=high, size=(size,))}
-
 
 def error_checker(f, error, error_msg):
     with pytest.raises(error) as excinfo:
